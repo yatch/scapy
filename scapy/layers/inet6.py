@@ -2871,6 +2871,132 @@ _mip6_mhtype2cls = { 0: MIP6MH_BRR,
                      6: MIP6MH_BA,
                      7: MIP6MH_BE }
 
+#############################################################################
+#############################################################################
+###             RPL                                                       ###
+#############################################################################
+#############################################################################
+class _RPLDAGMC(Packet):
+    name = "RPL DAG Metric Container which implements guess_payload_class()"
+    fields_desc = [ByteField("type", 0),
+                   BitField("res_flags", 0, 5),
+                   BitField("P", 0, 1),
+                   BitField("C", 0, 1),
+                   BitField("O", 0, 1),
+                   BitField("R", 0, 1),
+                   BitField("A", 0, 3),
+                   BitField("prec", 0, 4)]
+
+    def guess_payload_class(self, p):
+        if len(p) > 1:
+            return get_cls(rplmetriccls.get(p[0], "Raw"), "Raw")
+
+class RPLMetricNSA(_RPLDAGMC, Packet):
+    name = "RPL Metric - Node State and Attribute Object"
+    type = 1
+    len = 2
+    fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
+                                           ByteField("res", 0),
+                                           BitField("flags", 0, 6),
+                                           BitField("a", 0, 1),
+                                           BitField("o", 0, 1)]
+
+class RPLMetricNE(_RPLDAGMC, Packet):
+    name = "RPL Metric - Node Energy Object"
+    type = 2
+    len = 2
+    fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
+                                           BitField("flags", 0, 4),
+                                           BitField("i", 0, 1),
+                                           BitField("t", 0, 2),
+                                           BitField("e", 0, 1),
+                                           ByteField("e_e", 0)]
+
+class RPLMetricHP(_RPLDAGMC, Packet):
+    name = "RPL Metric - Hop Count Object"
+    type = 3
+    len = 2
+    fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
+                                           BitField("res", 0, 4),
+                                           BitField("flags", 0, 4),
+                                           ByteField("hop_count", 0)]
+
+class RPLMetricThroughput(_RPLDAGMC, Packet):
+    name = "RPL Metric - Throughput"
+    type = 4
+    len = 4
+    fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
+                                           IntField("throughput", 0)]
+
+class RPLMetricLatency(_RPLDAGMC, Packet):
+    name = "RPL Metric - Latency"
+    type = 5
+    len = 4
+    fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
+                                           IntField("latency", 0)]
+
+class RPLLQLType1(Packet):
+    name = "RPL Metric LQL - Type 1 Sub-Object"
+    fields_desc = [BitField("val", 0, 3),
+                   BitField("counter", 0, 5)]
+    def extract_padding(self, p):
+        return "", p
+
+class RPLMetricLQL(_RPLDAGMC, Packet):
+    name = "RPL Metric - The Link Quality Level Reliability Metric"
+    type = 6
+    fields_desc =_RPLDAGMC.fields_desc + [FieldLenField("len",
+                                                        None,
+                                                        count_of = "lql",
+                                                        fmt = "B",
+                                                        adjust = lambda p, x: x + 1),
+                                          ByteField("res", 0),
+                                          PacketListField("lql",
+                                                          RPLLQLType1(),
+                                                          RPLLQLType1,
+                                                          count_from = lambda p: p.len - 1)]
+
+
+class RPLMetricETX(_RPLDAGMC, Packet):
+    name = "RPL Metric - The ETX Reliability Object"
+    type = 7
+    len = 2
+    fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
+                                           ShortField("etx", 0)]
+
+class RPLLCType1(Packet):
+    name = "RPL Metric LC - Type 1 Sub-Object"
+    fields_desc = [BitField("link_color", 0, 10),
+                   BitField("counter", 0, 6)]
+    def extract_padding(self, p):
+        return "", p
+
+class RPLLCType2(Packet):
+    name = "RPL Metric LC - Type 2 Sub-Object"
+    fields_desc = [BitField("link_color", 0, 10),
+                   BitField("reserved", 0, 5),
+                   BitField("i", 0, 1)]
+    def extract_padding(self, p):
+        return "", p
+
+class RPLMetricLC(_RPLDAGMC, Packet):
+    name = "RPL Metric - Link Color Object"
+    type = 8
+    len = 3
+    fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
+                                           ByteField("res", 0),
+                                           ConditionalField(
+                                               PacketListField("lc",
+                                                          RPLLCType2(),
+                                                          RPLLCType2,
+                                                               count_from = lambda p: (p.len - 1) / 2),
+                                               lambda p: p.C == 1),
+                                           ConditionalField(
+                                               PacketListField("lc",
+                                                          RPLLCType1(),
+                                                          RPLLCType1,
+                                                               count_from = lambda p: (p.len - 1) / 2),
+                                               lambda p: p.C == 0)]
 
 #############################################################################
 #############################################################################
