@@ -1293,7 +1293,7 @@ class ICMPv6EchoReply(ICMPv6EchoRequest):
 ############ ICMPv6 Multicast Listener Discovery (RFC3810) ##################
 
 # tous les messages MLD sont emis avec une adresse source lien-locale
-# -> Y veiller dans le post_build si aucune n'est specifiee
+# -> Y veiller dans le post_build si aucune n'est speciiee
 # La valeur de Hop-Limit doit etre de 1
 # "and an IPv6 Router Alert option in a Hop-by-Hop Options
 # header. (The router alert option is necessary to cause routers to
@@ -2876,9 +2876,223 @@ _mip6_mhtype2cls = { 0: MIP6MH_BRR,
 ###             RPL                                                       ###
 #############################################################################
 #############################################################################
+
+### RFC 6550
+# RPL Control Message Option
+rploptscls = {0 : "ICMPv6RPLOptPad1",
+              1 : "ICMPv6RPLOptPadN",
+              2 : "ICMPv6RPLOptDAGMetricContainer",
+              3 : "ICMPv6RPLOptRouteInformation",
+              4 : "ICMPv6RPLOptDODAGConfiguration",
+              5 : "ICMPv6RPLOptRPLTarget",
+              6 : "ICMPv6RPLOptTransitInformation",
+              7 : "ICMPv6RPLOptSolicitedInformation",
+              8 : "ICMPv6RPLOptPrefixInformation",
+              9 : "ICMPv6RPLOptRPLTargetDescriptor"}
+
+rplopts = {0 : "Pad1",
+           1 : "PadN",
+           2 : "DAG Metric Container",
+           3 : "Route Information",
+           4 : "DODAG Configuration",
+           5 : "RPL Target",
+           6 : "Transit Information",
+           7 : "Solicited Information",
+           8 : "Prefix Information",
+           9 : "RPL Target Descriptor"}
+
+class Prefix6Field(IP6Field):
+    def __init__(self, name, default, get_plen):
+        Field.__init__(self, name, default, "s")
+        self.get_plen = get_plen
+
+    def h2i(self, pkt, x):
+        if x.find('/') > -1:
+            addr, plen = x.split("/")
+        else:
+            addr = x
+            plen = "128"
+        return IP6Field.h2i(self, pkt, addr) + "/" + plen
+
+    def i2m(self, pkt, x):
+        addr, plen = x.split("/")
+        b_addr = inet_pton(socket.AF_INET6, addr)
+        index = (int(plen)//8)
+        if int(plen) % 8 > 0:
+            mask = (2 ** 8 - 1) - (2 ** (8 - int(plen) / 8) - 1)
+            ret = b_addr[:index] + struct.pack("B", b_addr[index][0] - mask)
+        else:
+            ret = b_addr[:index]
+        return ret
+
+    def i2len(self, pkt, val):
+        addr, plen = val.split("/")
+        if int(plen) == 0:
+            return 0
+        else:
+            return (int(plen) - 1) // 8 + 1
+
+    def i2repr(self, pkt, x):
+        return self.i2h(pkt, x)
+
+    def m2i(self, pkt, x):
+        addr = inet_ntop(socket.AF_INET6,
+                         x + b'\x00' * (16 - len(x)))
+        plen = str(len(x) * 8)
+        return addr + "/" + plen
+
+    def addfield(self, pkt, s, val):
+        return  s + self.i2m(pkt, val)
+
+    def getfield(self, pkt, s):
+        l = self.get_plen(pkt)
+        if l > 0:
+            return s[l:], self.m2i(pkt, s[:l])
+        else:
+            return s, None
+
+class ICMPv6RPLOptPad1(Packet):
+    name = "RPL Control Message Option - Pad1"
+    fields_desc = [ByteField("type", 0)]
+
+class ICMPv6RPLOptPadN(Packet):
+    name = "RPL Control Message Option - PadN"
+    fields_desc = [ByteEnumField("type", 1, rplopts),
+                   ByteField("len", 0),
+                   StrLenField("padding", None,
+                               length_from = lambda p: p.len)]
+
+    def post_build(self, p, pay):
+        if self.padding is None:
+            p += b'\x00' * self.len
+        elif self.len == 0:
+                p = p[:1] + struct.pack("B", len(self.padding)) + p[2:]
+        return p + pay
+
+class ICMPv6RPLOptDAGMetricContainer(Packet):
+    name = "RPL Control Message Option - DAG Metric Container"
+    fields_desc = [ByteEnumField("type", 2, rplopts),
+                   ByteField("len", 0)]
+
+    def post_build(self, p, pay):
+        if self.len == 0 and pay is not None:
+            p = p[:1] + struct.pack("B", len(pay)) + p[2:]
+        return p + pay
+
+    def guess_payload_class(self, pay):
+        t = pay[0]
+        return get_cls(rplmetricscls.get(t, "Raw"), "Raw")
+
+class ICMPv6RPLOptRouteInformation(Packet):
+    name = "RPL Control Message Option - Route Information"
+    fields_desc = [ByteEnumField("type", 3, rplopts),
+                   FieldLenField("len", None, length_of = "prefix", fmt = "B",
+                                 adjust = lambda p, x: x + 6),
+                   ByteField("plen", 0),
+                   BitField("resvd1", 0, 3),
+                   BitField("prf", 0, 2),
+                   BitField("resvd2", 0, 3),
+                   IntField("route_lifetime", 0),
+                   Prefix6Field("prefix", "::/0",
+                                lambda p: p.len - 6)]
+
+class ICMPv6RPLOptDODAGConfiguration(Packet):
+    name = "RPL Control Message Option - DODAG Configuration"
+    fields_desc = [ByteEnumField("type", 4, rplopts),
+                   ByteField("len", 14),
+                   BitField("flags", 0, 4),
+                   BitField("A", 0, 1),
+                   BitField("pcs", 0, 3),
+                   ByteField("dio_int_double", 0),
+                   ByteField("dio_int_min", 0),
+                   ByteField("dio_redun", 0),
+                   ShortField("max_rank_increase", 0),
+                   ShortField("min_hop_increase", 0),
+                   ShortField("ocp", 0),
+                   ByteField("reserved", 0),
+                   ByteField("def_lifetime", 0),
+                   ShortField("lifetime_unit", 0)]
+
+class ICMPv6RPLOptRPLTarget(Packet):
+    name = "RPL Control Message Option - RPL Target"
+    fields_desc = [ByteEnumField("type", 5, rplopts),
+                   FieldLenField("len", None, length_of = "target_prefix",
+                                 fmt = "B",
+                                 adjust = lambda p, x: x + 2),
+                   ByteField("flags", 0),
+                   ByteField("prefix_length", 0),
+                   Prefix6Field("target_prefix", "::/0",
+                                lambda p: p.len - 2)]
+
+class ICMPv6RPLOptTransitInformation(Packet):
+    name = "RPL Control Message Option - Transit Information"
+    fields_desc = [ByteEnumField("type", 6, rplopts),
+                   FieldLenField("len", None, length_of = "parent_address",
+                                 fmt = "B",
+                                 adjust = lambda p, x: x + 4),
+                   BitField("E", 0, 1),
+                   BitField("flags", 0, 7),
+                   ByteField("path_control", 0),
+                   ByteField("path_sequence", 0),
+                   ByteField("path_lifetime", 0),
+                   Prefix6Field("parent_address", "::/0",
+                                lambda p: p.len - 4)]
+
+class ICMPv6RPLOptSolicitedInformation(Packet):
+    name = "RPL Control Message Option - Solicited Information"
+    fields_desc = [ByteEnumField("type", 7, rplopts),
+                   ByteField("len", 19),
+                   ByteField("rpl_instance_id", 0),
+                   BitField("V", 0, 1),
+                   BitField("I", 0, 1),
+                   BitField("D", 0, 1),
+                   BitField("flags", 0, 5),
+                   IP6Field("dodagid", "::"),
+                   ByteField("version_number", 0)]
+
+class ICMPv6RPLOptPrefixInformation(Packet):
+    name = "RPL Control Message Option - Prefix Information"
+    fields_desc = [ByteEnumField("type", 8, rplopts),
+                   ByteField("len", 30),
+                   ByteField("prefix_length", 0),
+                   BitField("L", 0, 1),
+                   BitField("A", 0, 1),
+                   BitField("R", 0, 1),
+                   BitField("reserved1", 0 , 5),
+                   IntField("valid_lifetime", 0),
+                   IntField("preferred_lifetime", 0),
+                   IntField("reserved2", 0),
+                   IP6Field("prefix", "::")]
+
+class ICMPv6RPLOptRPLTargetDescriptor(Packet):
+    name = "RPL Control Message Option - RPL Target Descriptor"
+    fields_desc = [ByteEnumField("type", 9, rplopts),
+                   ByteField("len", 4),
+                   IntField("descriptor", 0)]
+
+### RFC 6551
+rplmetricscls = {1 : "RPLMetricNSA",
+                 2 : "RPLMetricNE",
+                 3 : "RPLMetricHP",
+                 4 : "RPLMetricThroughput",
+                 5 : "RPLMetricLatency",
+                 6 : "RPLMetricLQL",
+                 7 : "RPLMetricETX",
+                 8 : "RPLMetricLC"}
+
+rplmetrics = { 0 : "Invalid",
+               1 : "Node State and Attribute",
+               2 : "Node Energy",
+               3 : "Hop Count",
+               4 : "Throughput",
+               5 : "Latency",
+               6 : "Link Quality Level",
+               7 : "ETX Reliability",
+               8 : "Link Color" }
+
 class _RPLDAGMC(Packet):
     name = "RPL DAG Metric Container which implements guess_payload_class()"
-    fields_desc = [ByteField("type", 0),
+    fields_desc = [ByteEnumField("type", 0, rplmetrics),
                    BitField("res_flags", 0, 5),
                    BitField("P", 0, 1),
                    BitField("C", 0, 1),
@@ -2997,6 +3211,7 @@ class RPLMetricLC(_RPLDAGMC, Packet):
                                                           RPLLCType1,
                                                                count_from = lambda p: (p.len - 1) / 2),
                                                lambda p: p.C == 0)]
+
 
 #############################################################################
 #############################################################################
