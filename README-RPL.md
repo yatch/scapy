@@ -6,8 +6,8 @@
 
 ICMPv6 RPL Control Messages:
 
-| Abbr.   | Message                                          | Class               | Ref in RFC 6550                                       |
-|---------+--------------------------------------------------+---------------------+--------------------------------------------------------|
+| Abbr.   | Message                                          | Class               | Ref in RFC 6550                                        |
+|---------|--------------------------------------------------|---------------------|--------------------------------------------------------|
 | DIS     | DODAG Information Solicitation                   | `ICMPv6RPL_DIS`     | [6.2](https://tools.ietf.org/html/rfc6550#section-6.2) |
 | DIO     | DODAG Information Object                         | `ICMPv6RPL_DIO`     | [6.3](https://tools.ietf.org/html/rfc6550#section-6.3) |
 | DAO     | Destination Advertisement Object                 | `ICMPv6RPL_DAO`     | [6.4](https://tools.ietf.org/html/rfc6550#section-6.4) |
@@ -16,7 +16,7 @@ ICMPv6 RPL Control Messages:
 
 RPL Control Message Options:
 
-| Option                  | Class                              | Ref in RFC 6550                                             |
+| Option                  | Class                              | Ref in RFC 6550                                              |
 |-------------------------|------------------------------------|--------------------------------------------------------------|
 | Pad1                    | `ICMPv6RPLOptPad1`                 | [6.7.2](https://tools.ietf.org/html/rfc6550#section-6.7.2)   |
 | PadN                    | `ICMPv6RPLOptPadN`                 | [6.7.3](https://tools.ietf.org/html/rfc6550#section-6.7.3)   |
@@ -33,8 +33,8 @@ RPL Control Message Options:
 
 Node/Link Metric/Constraint Objects:
 
-| Object                                    | Class                 | Ref in RFC 6551                                           |
-|-------------------------------------------+-----------------------+------------------------------------------------------------|
+| Object                                    | Class                 | Ref in RFC 6551                                            |
+|-------------------------------------------|-----------------------|------------------------------------------------------------|
 | Node State and Attribute Object           | `RPLMetricNSA`        | [3.1](https://tools.ietf.org/html/rfc6551#section-3.1)     |
 | Node Energy Object                        | `RPLMetricNE`         | [3.2](https://tools.ietf.org/html/rfc6551#section-3.2)     |
 | Hop Count Object                          | `RPLMetricHP`         | [3.3](https://tools.ietf.org/html/rfc6551#section-3.3)     |
@@ -48,16 +48,16 @@ Node/Link Metric/Constraint Objects:
 
 RPL Source Routing Header:
 
-| Header                          | Class                        | Ref in RFC 6554                                   |
-|---------------------------------+------------------------------+----------------------------------------------------|
+| Header                          | Class                        | Ref in RFC 6554                                    |
+|---------------------------------|------------------------------|----------------------------------------------------|
 | RPL Source Routing Header (SRH) | `IPv6ExtHdrRPLSourceRouting` | [3](https://tools.ietf.org/html/rfc6554#section-3) |
 
 ### RFC 6775 ###
 
 Neighbor Discovery Options:
 
-| Option                             | Class             | Ref in RFC 6775                                       |
-|------------------------------------+-------------------+--------------------------------------------------------|
+| Option                             | Class             | Ref in RFC 6775                                        |
+|------------------------------------|-------------------|--------------------------------------------------------|
 | Address Registration Option        | `ICMPv6NDOptARO`  | [4.1](https://tools.ietf.org/html/rfc6775#section-4.1) |
 | 6LoWPAN Context Option             | `ICMPv6NDOpt6CO`  | [4.2](https://tools.ietf.org/html/rfc6775#section-4.2) |
 | Authoritative Border Router Option | `ICMPv6NDOptARBO` | [4.3](https://tools.ietf.org/html/rfc6775#section-4.3) |
@@ -65,6 +65,6 @@ Neighbor Discovery Options:
 Duplicate Address Messages:
 
 | Message                        | Class          | Ref in RFC 6775                                        |
-|--------------------------------+----------------+--------------------------------------------------------|
+|--------------------------------|----------------|--------------------------------------------------------|
 | Duplicate Address Request      | `ICMPv6ND_DAR` | [4.4](https://tools.ietf.org/html/rfc6775#section-4.4) |
 | Duplicate Address Confirmation | `ICMPv6ND_DAC` | [4.4](https://tools.ietf.org/html/rfc6775#section-4.4) |
