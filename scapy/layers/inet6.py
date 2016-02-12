@@ -340,6 +340,8 @@ class _IPv6GuessPayload:
             t = p[0]
             if len(p) > 2 and t == 139 or t == 140: # Node Info Query 
                 return _niquery_guesser(p)
+            if len(p) > 2 and t == 155: # RPL Control Message
+                return _rpl_guesser(p)
             if len(p) >= icmp6typesminhdrlen.get(t, sys.maxsize): # Other ICMPv6 messages
                 return get_cls(icmp6typescls.get(t,"Raw"), "Raw")
             return Raw
@@ -1125,6 +1127,7 @@ icmp6typescls = {    1: "ICMPv6DestUnreach",
                    151: "ICMPv6MRD_Advertisement",
                    152: "ICMPv6MRD_Solicitation",
                    153: "ICMPv6MRD_Termination",
+                   155: "_ICMPv6RPL"
                    }
 
 icmp6typesminhdrlen = {    1: 8,
@@ -1151,7 +1154,8 @@ icmp6typesminhdrlen = {    1: 8,
                          147: 8,
                          151: 8,
                          152: 4,
-                         153: 4
+                         153: 4,
+                         155: 6
                    }
 
 icmp6types = { 1 : "Destination unreachable",  
@@ -1185,6 +1189,7 @@ icmp6types = { 1 : "Destination unreachable",
              151 : "Multicast Router Advertisement",
              152 : "Multicast Router Solicitation",
              153 : "Multicast Router Termination",
+             155 : "RPL Control Message",
              200 : "Private Experimentation",
              201 : "Private Experimentation" }
 
@@ -2951,11 +2956,21 @@ class Prefix6Field(IP6Field):
         else:
             return s, None
 
-class ICMPv6RPLOptPad1(Packet):
+class ICMPv6RPLOptUnknown(Packet):
+    name = "RPL Control Message Option - Unknown"
+    fields_desc = [ByteField("type", 0),
+                   FieldLenField("len", None, length_of = "data", fmt = "B"),
+                   StrLenField("data", "",
+                               length_from = lambda p: p.len)]
+
+    def guess_payload_class(self, p):
+        return(get_cls(rploptscls.get(p[0], "Raw"), "Raw"))
+
+class ICMPv6RPLOptPad1(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Pad1"
     fields_desc = [ByteField("type", 0)]
 
-class ICMPv6RPLOptPadN(Packet):
+class ICMPv6RPLOptPadN(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - PadN"
     fields_desc = [ByteEnumField("type", 1, rplopts),
                    ByteField("len", 0),
@@ -2969,7 +2984,7 @@ class ICMPv6RPLOptPadN(Packet):
                 p = p[:1] + struct.pack("B", len(self.padding)) + p[2:]
         return p + pay
 
-class ICMPv6RPLOptDAGMetricContainer(Packet):
+class ICMPv6RPLOptDAGMetricContainer(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - DAG Metric Container"
     fields_desc = [ByteEnumField("type", 2, rplopts),
                    ByteField("len", 0)]
@@ -2983,7 +2998,7 @@ class ICMPv6RPLOptDAGMetricContainer(Packet):
         t = pay[0]
         return get_cls(rplmetricscls.get(t, "Raw"), "Raw")
 
-class ICMPv6RPLOptRouteInformation(Packet):
+class ICMPv6RPLOptRouteInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Route Information"
     fields_desc = [ByteEnumField("type", 3, rplopts),
                    FieldLenField("len", None, length_of = "prefix", fmt = "B",
@@ -2996,7 +3011,7 @@ class ICMPv6RPLOptRouteInformation(Packet):
                    Prefix6Field("prefix", "::/0",
                                 lambda p: p.len - 6)]
 
-class ICMPv6RPLOptDODAGConfiguration(Packet):
+class ICMPv6RPLOptDODAGConfiguration(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - DODAG Configuration"
     fields_desc = [ByteEnumField("type", 4, rplopts),
                    ByteField("len", 14),
@@ -3010,10 +3025,10 @@ class ICMPv6RPLOptDODAGConfiguration(Packet):
                    ShortField("min_hop_increase", 0),
                    ShortField("ocp", 0),
                    ByteField("reserved", 0),
-                   ByteField("def_lifetime", 0),
+                   ByteField("default_lifetime", 0),
                    ShortField("lifetime_unit", 0)]
 
-class ICMPv6RPLOptRPLTarget(Packet):
+class ICMPv6RPLOptRPLTarget(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - RPL Target"
     fields_desc = [ByteEnumField("type", 5, rplopts),
                    FieldLenField("len", None, length_of = "target_prefix",
@@ -3024,7 +3039,7 @@ class ICMPv6RPLOptRPLTarget(Packet):
                    Prefix6Field("target_prefix", "::/0",
                                 lambda p: p.len - 2)]
 
-class ICMPv6RPLOptTransitInformation(Packet):
+class ICMPv6RPLOptTransitInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Transit Information"
     fields_desc = [ByteEnumField("type", 6, rplopts),
                    FieldLenField("len", None, length_of = "parent_address",
@@ -3038,7 +3053,7 @@ class ICMPv6RPLOptTransitInformation(Packet):
                    Prefix6Field("parent_address", "::/0",
                                 lambda p: p.len - 4)]
 
-class ICMPv6RPLOptSolicitedInformation(Packet):
+class ICMPv6RPLOptSolicitedInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Solicited Information"
     fields_desc = [ByteEnumField("type", 7, rplopts),
                    ByteField("len", 19),
@@ -3050,7 +3065,7 @@ class ICMPv6RPLOptSolicitedInformation(Packet):
                    IP6Field("dodagid", "::"),
                    ByteField("version_number", 0)]
 
-class ICMPv6RPLOptPrefixInformation(Packet):
+class ICMPv6RPLOptPrefixInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Prefix Information"
     fields_desc = [ByteEnumField("type", 8, rplopts),
                    ByteField("len", 30),
@@ -3064,11 +3079,89 @@ class ICMPv6RPLOptPrefixInformation(Packet):
                    IntField("reserved2", 0),
                    IP6Field("prefix", "::")]
 
-class ICMPv6RPLOptRPLTargetDescriptor(Packet):
+class ICMPv6RPLOptRPLTargetDescriptor(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - RPL Target Descriptor"
     fields_desc = [ByteEnumField("type", 9, rplopts),
                    ByteField("len", 4),
                    IntField("descriptor", 0)]
+
+rplmsgcls = {0 : "ICMPv6RPL_DIS",
+             1 : "ICMPv6RPL_DIO",
+             2 : "ICMPv6RPL_DAO",
+             3 : "ICMPv6RPL_DAO_ACK"}
+
+def _rpl_guesser(p):
+    return get_cls(rplmsgcls.get(p[1], "Raw"), "Raw")
+
+class _ICMPv6RPL:
+    name = "Dummpy RPL Control Message"
+
+    def guess_payload_class(self, p):
+        return(get_cls(rploptscls.get(p[0], "Raw"), "Raw"))
+
+class ICMPv6RPL_DIS(_ICMPv6RPL, _ICMPv6, Packet):
+    name = "RPL Control Message - DODAG Information Solicitation"
+    fields_desc = [ByteEnumField("type", 155, icmp6types),
+                   ByteField("code", 0),
+                   XShortField("cksum", None),
+                   ByteField("flags", 0),
+                   ByteField("reserved", 0)]
+
+class ICMPv6RPL_DIO(_ICMPv6RPL, _ICMPv6, Packet):
+    name = "RPL Control Message - DODAG Information Object"
+    fields_desc = [ByteEnumField("type", 155, icmp6types),
+                   ByteField("code", 1),
+                   XShortField("cksum", None),
+                   ByteField("rpl_instance_id", 0),
+                   ByteField("version_number", 0),
+                   ShortField("rank", 0),
+                   BitField("G", 0, 1),
+                   BitField("O", 0, 1),
+                   BitField("mop", 0, 3),
+                   BitField("prf", 0, 3),
+                   ByteField("dtsn", 0),
+                   ByteField("flags", 0),
+                   ByteField("reserved", 0),
+                   IP6Field("dodagid", "::")]
+
+class ICMPv6RPL_DAO(_ICMPv6RPL, _ICMPv6, Packet):
+    name = "RPL Control Message - DODAG Advertisement Object"
+    fields_desc = [ByteEnumField("type", 155, icmp6types),
+                   ByteField("code", 2),
+                   XShortField("cksum", None),
+                   ByteField("rpl_instance_id", 0),
+                   BitField("K", 0, 1),
+                   BitField("D", 0, 1),
+                   BitField("flags", 0, 6),
+                   ByteField("reserved", 0),
+                   ByteField("dao_sequence", 0),
+                   IP6Field("dodagid", "::")]
+
+class ICMPv6RPL_DAO_ACK(_ICMPv6RPL, _ICMPv6, Packet):
+    name = "RPL Control Message - DODAG Advertisement Object Acknowledgement"
+    fields_desc = [ByteEnumField("type", 155, icmp6types),
+                   ByteField("code", 3),
+                   XShortField("cksum", None),
+                   ByteField("rpl_instance_id", 0),
+                   BitField("D", 0, 1),
+                   BitField("reserved", 0, 7),
+                   ByteField("dao_sequence", 0),
+                   ByteField("status", 0),
+                   ConditionalField(IP6Field("dodagid", "::"),
+                                    lambda p: p.D == 1)]
+
+class ICMPv6RPL_CC(_ICMPv6RPL, _ICMPv6, Packet):
+    name = "RPL Control Message - DODAG Advertisement Object Acknowledgement"
+    fields_desc = [ByteEnumField("type", 155, icmp6types),
+                   ByteField("code", 4),
+                   XShortField("cksum", None),
+                   ByteField("rpl_instance_id", 0),
+                   BitField("R", 0, 1),
+                   BitField("reserved", 0, 7),
+                   ShortField("cc_nonce", 0),
+                   IP6Field("dodagid", "::"),
+                   IntField("destination_counter", 0)]
+
 
 ### RFC 6551
 rplmetricscls = {1 : "RPLMetricNSA",
