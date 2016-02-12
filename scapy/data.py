@@ -17,6 +17,7 @@ from .error import log_loading
 
 ETHER_ANY = b"\x00"*6
 ETHER_BROADCAST = b"\xff"*6
+EUI64_ANY = b"\x00"*8
 
 ETH_P_ALL = 3
 ETH_P_IP = 0x800

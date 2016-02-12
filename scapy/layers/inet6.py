@@ -1544,7 +1544,10 @@ icmp6ndopts = { 1: "Source Link-Layer Address",
                23: "MAP Option",          # RFC 4140
                24: "Route Information Option",  # RFC 4191
                25: "Recusive DNS Server Option",
-               26: "IPv6 Router Advertisement Flags Option"
+               26: "IPv6 Router Advertisement Flags Option",
+               33: "Address Registration Option",       # RFC 6775
+               34: "6LoWPAN Context Option",            # RFC 6775
+               34: "Authoritative Border Router Option" # RFC 6775
                 }
                   
 icmp6ndoptscls = { 1: "ICMPv6NDOptSrcLLAddr",
@@ -1574,12 +1577,16 @@ icmp6ndoptscls = { 1: "ICMPv6NDOptSrcLLAddr",
                   23: "ICMPv6NDOptMAP",
                   24: "ICMPv6NDOptRouteInfo",
                   25: "ICMPv6NDOptRDNSS",
-                  26: "ICMPv6NDOptEFA"
+                  26: "ICMPv6NDOptEFA",
+                  33: "ICMPv6NDOptARO",
+                  34: "ICMPv6NDOpt6CO",
+                  35: "ICMPv6NDOptABRO"
                   }
 
 class _ICMPv6NDGuessPayload:
     name = "Dummy ND class that implements guess_payload_class()"
     def guess_payload_class(self,p):
+        print(p)
         if len(p) > 1:
             #return get_cls(icmp6ndoptscls.get(ord(p[0]),"Raw"), "Raw") # s/Raw/ICMPv6NDOptUnknown/g ?
             return get_cls(icmp6ndoptscls.get(p[0],"Raw"), "Raw") # s/Raw/ICMPv6NDOptUnknown/g ?
@@ -1600,10 +1607,22 @@ class ICMPv6NDOptUnknown(_ICMPv6NDGuessPayload, Packet):
 class ICMPv6NDOptSrcLLAddr(_ICMPv6NDGuessPayload, Packet):
     name = "ICMPv6 Neighbor Discovery Option - Source Link-Layer Address"
     fields_desc = [ ByteField("type", 1),
-                    ByteField("len", 1),
-                    MACField("lladdr", ETHER_ANY) ]
+                    ByteField("len", None),
+                    ConditionalField(MACField("lladdr", ETHER_ANY),
+                                     lambda p: p.len == 1),
+                    ConditionalField(EUI64Field("lladdr", EUI64_ANY),
+                                     lambda p: p.len == 2)]
+    def post_build(self, p, pay):
+        if self.len == None:
+            p = p[:1] + len(p.lladdr) / 8 + p[2:]
+        return p + pay
     def mysummary(self):                        
         return self.sprintf("%name% %lladdr%")
+    def extract_padding(self, s):
+        padlen = 0
+        if self.len == 2:
+            padlen = 6
+        return s[padlen:], s[:padlen]
 
 class ICMPv6NDOptDstLLAddr(ICMPv6NDOptSrcLLAddr):
     name = "ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address"
@@ -1817,6 +1836,38 @@ class ICMPv6NDOptEFA(_ICMPv6NDGuessPayload, Packet): # RFC 5175 (prev. 5075)
     fields_desc = [ ByteField("type", 26),
                     ByteField("len", 1),
                     BitField("res", 0, 48) ]
+
+class ICMPv6NDOptARO(_ICMPv6NDGuessPayload, Packet): # RFC 6775
+    name = "ICMPv6 Neighbor Discovery Option - Address Registration Option"
+    fields_desc = [ByteField("type", 33),
+                   ByteField("len", 2),
+                   ByteField("status", 0),
+                   ByteField("reserved1", 0),
+                   ShortField("reserved2", 0),
+                   ShortField("registration_lifetime", 0),
+                   EUI64Field("eui_64", EUI64_ANY)]
+
+class ICMPv6NDOpt6CO(_ICMPv6NDGuessPayload, Packet): # RFC 6775
+    name = "ICMPv6 Neighbor Discovery Option - 6LoWPAN Context Option"
+    fields_desc = [ByteField("type", 34),
+                   ByteField("len", 2),
+                   ByteField("context_length", 0),
+                   BitField("res", 0, 3),
+                   BitField("C", 0, 1),
+                   BitField("cid", 0, 4),
+                   ShortField("reserved", 0),
+                   ShortField("valid_lifetime", 0),
+                   Prefix6Field("context_prefix", "::/64",
+                                lambda p: (p.len - 1) * 8)]
+
+class ICMPv6NDOptABRO(_ICMPv6NDGuessPayload, Packet): # RFC 6775
+    name = "ICMPv6 Neighbor Discovery Option - Authoritative Border Router Option"
+    fields_desc = [ByteField("type", 35),
+                   ByteField("len", 3),
+                   ShortField("version_low", 0),
+                   ShortField("version_high", 0),
+                   ShortField("valid_lifetime", 0),
+                   IP6Field("sixlbr_address", "::")]
 
 # End of ICMPv6 Neighbor Discovery Options.
 

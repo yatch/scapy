@@ -204,6 +204,19 @@ class MACField(Field):
     def randval(self):
         return RandMAC()
 
+class EUI64Field(MACField):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, "8s")
+    def i2m(self, pkt, x):
+        if x is None:
+            return b"\0\0\0\0\0\0\0\0"
+        return mac2str(x)
+    def m2i(self, pkt, x):
+        return ("%02x:"*8)[:-1] % tuple(x)
+    def any2i(self, pkt, x):
+        if type(x) is bytes and len(x) is 8:
+            x = self.m2i(pkt, x)
+        return x
 
 class IPField(Field):
     def __init__(self, name, default):
