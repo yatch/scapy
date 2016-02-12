@@ -1247,7 +1247,9 @@ icmp6typescls = {    1: "ICMPv6DestUnreach",
                    151: "ICMPv6MRD_Advertisement",
                    152: "ICMPv6MRD_Solicitation",
                    153: "ICMPv6MRD_Termination",
-                   155: "_ICMPv6RPL"
+                   155: "_ICMPv6RPL",
+                   157: "ICMPv6ND_DAR",
+                   158: "ICMPv6ND_DAC"
                    }
 
 icmp6typesminhdrlen = {    1: 8,
@@ -1275,7 +1277,9 @@ icmp6typesminhdrlen = {    1: 8,
                          151: 8,
                          152: 4,
                          153: 4,
-                         155: 6
+                         155: 6,
+                         157: 32,
+                         158: 32
                    }
 
 icmp6types = { 1 : "Destination unreachable",  
@@ -1310,6 +1314,8 @@ icmp6types = { 1 : "Destination unreachable",
              152 : "Multicast Router Solicitation",
              153 : "Multicast Router Termination",
              155 : "RPL Control Message",
+             157 : "Duplicate Address Request",
+             158 : "Duplicate Address Confirmation",
              200 : "Private Experimentation",
              201 : "Private Experimentation" }
 
@@ -1868,6 +1874,23 @@ class ICMPv6NDOptABRO(_ICMPv6NDGuessPayload, Packet): # RFC 6775
                    ShortField("version_high", 0),
                    ShortField("valid_lifetime", 0),
                    IP6Field("sixlbr_address", "::")]
+
+class ICMPv6ND_DAR(_ICMPv6NDGuessPayload, _ICMPv6):
+    name = "ICMPv6 Duplicate Address Request"
+    fields_desc = [ByteEnumField("type", 157, icmp6types),
+                   ByteField("code",0),
+                   XShortField("cksum", None),
+                   ByteField("status", 0),
+                   ByteField("reserved", 0),
+                   ShortField("registration_lifetime", 0),
+                   EUI64Field("eui_64", EUI64_ANY),
+                   IP6Field("registered_address", "::")]
+    overload_fields = {IPv6: { "nh": 58, "hlim": 64 }}
+
+class ICMPv6ND_DAC(ICMPv6ND_DAR):
+    name = "ICMPv6 Duplicate Address Confirmation"
+    type = 158
+
 
 # End of ICMPv6 Neighbor Discovery Options.
 
