@@ -247,6 +247,88 @@ class SourceIP6Field(IP6Field):
                 iff,x,nh = conf.route6.route(dst)
         return IP6Field.i2h(self, pkt, x)
 
+class Prefix6Field(IP6Field):
+    def __init__(self, name, default, get_plen):
+        Field.__init__(self, name, default, "s")
+        self.get_plen = get_plen
+
+    def h2i(self, pkt, x):
+        if x.find('/') > -1:
+            addr, plen = x.split("/")
+        else:
+            addr = x
+            plen = "128"
+        return IP6Field.h2i(self, pkt, addr) + "/" + plen
+
+    def i2m(self, pkt, x):
+        addr, plen = x.split("/")
+        b_addr = inet_pton(socket.AF_INET6, addr)
+        index = (int(plen)//8)
+        if int(plen) % 8 > 0:
+            mask = (2 ** 8 - 1) - (2 ** (8 - int(plen) / 8) - 1)
+            ret = b_addr[:index] + struct.pack("B", b_addr[index][0] - mask)
+        else:
+            ret = b_addr[:index]
+        return ret
+
+    def i2len(self, pkt, val):
+        addr, plen = val.split("/")
+        if int(plen) == 0:
+            return 0
+        else:
+            return (int(plen) - 1) // 8 + 1
+
+    def i2repr(self, pkt, x):
+        return self.i2h(pkt, x)
+
+    def m2i(self, pkt, x):
+        addr = inet_ntop(socket.AF_INET6,
+                         x + b'\x00' * (16 - len(x)))
+        plen = str(len(x) * 8)
+        return addr + "/" + plen
+
+    def addfield(self, pkt, s, val):
+        return  s + self.i2m(pkt, val)
+
+    def getfield(self, pkt, s):
+        l = self.get_plen(pkt)
+        if l > 0:
+            return s[l:], self.m2i(pkt, s[:l])
+        else:
+            return s, None
+
+class Address6Field(IP6Field):
+    def __init__(self, name, default, get_cmprlen):
+        Field.__init__(self, name, default, "s")
+        self.get_cmprlen = get_cmprlen
+
+    def i2m(self, pkt, x):
+        cmprlen = self.get_cmprlen(pkt)
+        b_addr = inet_pton(socket.AF_INET6, x)
+        return b_addr[cmprlen:]
+
+    def i2len(self, pkt, val):
+        return 16 - self.get_cmprlen(pkt)
+
+    def i2repr(self, pkt, x):
+        return self.i2h(pkt, x)
+
+    def m2i(self, pkt, x):
+        l = self.get_cmprlen(pkt)
+        if pkt.underlayer is None:
+            prefix = b'\00' * l
+        else:
+            prefix = inet_pton(socket.AF_INET6, pkt.underlayer.dst)[:l]
+        addr = inet_ntop(socket.AF_INET6, prefix + x)
+        return addr
+
+    def addfield(self, pkt, s, val):
+        return  s + self.i2m(pkt, val)
+
+    def getfield(self, pkt, s):
+        l = 16 - self.get_cmprlen(pkt)
+        return s[l:], self.m2i(pkt, s[:l])
+
 ipv6nh = { 0:"Hop-by-Hop Option Header",
            4:"IP",
            6:"TCP",
@@ -348,6 +430,8 @@ class _IPv6GuessPayload:
         elif self.nh == 135 and len(p) > 3: # Mobile IPv6
             #return _mip6_mhtype2cls.get(ord(p[2]), MIP6MH_Generic)
             return _mip6_mhtype2cls.get(p[2], MIP6MH_Generic)
+        elif self.nh == 43 and p[2] == 3:
+            return get_cls("IPv6ExtHdrRPLSourceRouting", "Raw")
         else:
             return get_cls(ipv6nhcls.get(self.nh,"Raw"), "Raw")
 
@@ -892,6 +976,42 @@ class IPv6ExtHdrRouting(_IPv6ExtHdr):
         if self.segleft is None:
             pkt = pkt[:3]+struct.pack("B", len(self.addresses))+pkt[4:]
         return _IPv6ExtHdr.post_build(self, pkt, pay)
+
+
+
+########################### RPL Routing Header ##############################
+def calc_rpl_srh_len(pkt, x):
+    return math.ceil(((16 - pkt.CmprI) * x + (16 - pkt.CmprE)) / 8)
+
+class IPv6ExtHdrRPLSourceRouting(_IPv6ExtHdr):
+    name = "IPv6 Option Header RPL Source Routing Header"
+    fields_desc = [ByteEnumField("nh", 59, ipv6nh),
+                   FieldLenField("len", None, count_of = "addresses", fmt="B",
+                                 adjust = lambda pkt, x: calc_rpl_srh_len(pkt, x)),
+                   ByteField("type", 3),
+                   ByteField("segleft", None),
+                   BitField("CmprI", 0, 4),
+                   BitField("CmprE", 0, 4),
+                   BitField("pad", None, 4),
+                   BitField("reserved", 0, 20),
+                   FieldListField("addresses", [],
+                                  Address6Field("", "::",
+                                                lambda p: p.CmprI),
+                                  count_from = lambda p: (p.len * 8 - (16 - p.CmprE)) // (16 - p.CmprI)),
+                   Address6Field("last_address", "::",
+                                 lambda p: p.CmprE)]
+    overload_fields = {IPv6: { "nh": 43 }}
+
+    def post_build(self, pkt, pay):
+        if self.segleft is None:
+            pkt = pkt[:3]+ struct.pack("B", len(self.addresses) + 1) +pkt[4:]
+        if self.pad is None:
+            addrslen = len(self.addresses) * (16 - self.CmprI) + 16 - self.CmprE
+            padlen = (8 - addrslen % 8) % 8
+            pkt = pkt[:5] + struct.pack("B",  padlen << 4) + pkt[6:] + b'\x00' * padlen
+        return _IPv6ExtHdr.post_build(self, pkt, pay)
+
+
 
 ########################### Fragmentation Header ############################
 
@@ -2905,56 +3025,6 @@ rplopts = {0 : "Pad1",
            7 : "Solicited Information",
            8 : "Prefix Information",
            9 : "RPL Target Descriptor"}
-
-class Prefix6Field(IP6Field):
-    def __init__(self, name, default, get_plen):
-        Field.__init__(self, name, default, "s")
-        self.get_plen = get_plen
-
-    def h2i(self, pkt, x):
-        if x.find('/') > -1:
-            addr, plen = x.split("/")
-        else:
-            addr = x
-            plen = "128"
-        return IP6Field.h2i(self, pkt, addr) + "/" + plen
-
-    def i2m(self, pkt, x):
-        addr, plen = x.split("/")
-        b_addr = inet_pton(socket.AF_INET6, addr)
-        index = (int(plen)//8)
-        if int(plen) % 8 > 0:
-            mask = (2 ** 8 - 1) - (2 ** (8 - int(plen) / 8) - 1)
-            ret = b_addr[:index] + struct.pack("B", b_addr[index][0] - mask)
-        else:
-            ret = b_addr[:index]
-        return ret
-
-    def i2len(self, pkt, val):
-        addr, plen = val.split("/")
-        if int(plen) == 0:
-            return 0
-        else:
-            return (int(plen) - 1) // 8 + 1
-
-    def i2repr(self, pkt, x):
-        return self.i2h(pkt, x)
-
-    def m2i(self, pkt, x):
-        addr = inet_ntop(socket.AF_INET6,
-                         x + b'\x00' * (16 - len(x)))
-        plen = str(len(x) * 8)
-        return addr + "/" + plen
-
-    def addfield(self, pkt, s, val):
-        return  s + self.i2m(pkt, val)
-
-    def getfield(self, pkt, s):
-        l = self.get_plen(pkt)
-        if l > 0:
-            return s[l:], self.m2i(pkt, s[:l])
-        else:
-            return s, None
 
 class ICMPv6RPLOptUnknown(Packet):
     name = "RPL Control Message Option - Unknown"
