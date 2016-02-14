@@ -20,7 +20,7 @@ class NodeStateAndAttribute(unittest.TestCase):
     def test_basic_dissection(self):
         a = RPLMetricNSA(b'\x01\x00\x00\x02\x00\x00')
         self.assertTrue(a.type == 1 and
-                        a.res == 0 and
+                        a.reserved1 == 0 and
                         a.P == 0 and
                         a.C == 0 and
                         a.O == 0 and
@@ -28,7 +28,7 @@ class NodeStateAndAttribute(unittest.TestCase):
                         a.A == 0 and
                         a.prec == 0 and
                         a.len == 2 and
-                        a.res == 0 and
+                        a.reserved2 == 0 and
                         a.flags == 0 and
                         a.a == 0 and
                         a.o == 0)
@@ -43,7 +43,7 @@ class NodeStateAndAttribute(unittest.TestCase):
                          a = 1,
                          o = 1)
         self.assertTrue(a.type == 1 and
-                        a.res == 0 and
+                        a.reserved1 == 0 and
                         a.P == 1 and
                         a.C == 1 and
                         a.O == 1 and
@@ -51,7 +51,7 @@ class NodeStateAndAttribute(unittest.TestCase):
                         a.A == 3 and
                         a.prec == 15 and
                         a.len == 2 and
-                        a.res == 0 and
+                        a.reserved2 == 0 and
                         a.flags == 0 and
                         a.a == 1 and
                         a.o == 1)
@@ -62,28 +62,28 @@ class NodeEnergy(unittest.TestCase):
                          b'\x02\x00\x00\x02\x00\x00')
 
     def test_instantiation_with_specific_values(self):
-        self.assertEqual(bytes(RPLMetricNE(i = 1,
-                                           t = 2,
-                                           e = 1,
-                                           e_e = 100)),
+        self.assertEqual(bytes(RPLMetricNE(I = 1,
+                                           T = 2,
+                                           E = 1,
+                                           E_E = 100)),
                          b'\x02\x00\x00\x02\x0d\x64')
 
 
     def test_basic_dissection(self):
         a = RPLMetricNE(b'\x02\x00\x00\x02\x00\x00')
         self.assertTrue(a.flags == 0 and
-                        a.i == 0 and
-                        a.t == 0 and
-                        a.e == 0 and
-                        a.e_e == 0)
+                        a.I == 0 and
+                        a.T == 0 and
+                        a.E == 0 and
+                        a.E_E == 0)
 
     def test_dissection_with_specific_values(self):
         a = RPLMetricNE(b'\x02\x00\x00\x02\x0d\x64')
         self.assertTrue(a.flags == 0 and
-                        a.i == 1 and
-                        a.t == 2 and
-                        a.e == 1 and
-                        a.e_e == 100)
+                        a.I == 1 and
+                        a.T == 2 and
+                        a.E == 1 and
+                        a.E_E == 100)
 
 class HopCount(unittest.TestCase):
     def test_basic_instantiation(self):
@@ -91,16 +91,16 @@ class HopCount(unittest.TestCase):
                          b'\x03\x00\x00\x02\x00\x00')
 
     def test_instantiation_with_specific_values(self):
-        self.assertEqual(bytes(RPLMetricHP(hop_count = 255)),
+        self.assertEqual(bytes(RPLMetricHP(hopcount = 255)),
                          b'\x03\x00\x00\x02\x00\xff')
 
     def test_basic_dissection(self):
         a = RPLMetricHP(b'\x03\x00\x00\x02\x00\x00')
-        self.assertTrue(a.hop_count == 0)
+        self.assertTrue(a.hopcount == 0)
 
     def test_dissection_with_specific_values(self):
         a = RPLMetricHP(b'\x03\x00\x00\x02\x00\xff')
-        self.assertTrue(a.hop_count == 255)
+        self.assertTrue(a.hopcount == 255)
 
 class Throughput(unittest.TestCase):
     def test_basic_instantiation(self):
@@ -195,58 +195,58 @@ class LinkColor(unittest.TestCase):
 
     def test_instantiation_with_specific_values(self):
         self.assertEqual(bytes(RPLMetricLC(C = 0,
-                                           lc = [RPLLCType1(link_color = 1000,
+                                           lc = [RPLLCType1(linkcolor = 1000,
                                                             counter = 63)])),
                          b'\x08\x00\x00\x03\x00\xfa\x3f')
 
     def test_instantiation_with_specific_values2(self):
         self.assertEqual(bytes(RPLMetricLC(C = 0,
-                                           lc = [RPLLCType1(link_color = 1000,
+                                           lc = [RPLLCType1(linkcolor = 1000,
                                                             counter = 63),
-                                                 RPLLCType1(link_color = 1000,
+                                                 RPLLCType1(linkcolor = 1000,
                                                             counter = 63)])),
                          b'\x08\x00\x00\x03\x00\xfa\x3f\xfa\x3f')
 
     def test_instantiation_with_specific_values3(self):
         self.assertEqual(bytes(RPLMetricLC(C = 1,
-                                           lc = [RPLLCType2(link_color = 1000,
-                                                            i = 1)])),
+                                           lc = [RPLLCType2(linkcolor = 1000,
+                                                            I = 1)])),
                          b'\x08\x02\x00\x03\x00\xfa\x01')
 
     def test_instantiation_with_specific_values4(self):
         self.assertEqual(bytes(RPLMetricLC(C = 1,
-                                           lc = [RPLLCType2(link_color = 1000,
-                                                            i = 1),
-                                                 RPLLCType2(link_color = 1000,
-                                                            i = 1)])),
+                                           lc = [RPLLCType2(linkcolor = 1000,
+                                                            I = 1),
+                                                 RPLLCType2(linkcolor = 1000,
+                                                            I = 1)])),
                          b'\x08\x02\x00\x03\x00\xfa\x01\xfa\x01')
 
     def test_basic_dissection(self):
         a = RPLMetricLC(b'\x08\x00\x00\x03\x00\x00\x00')
         self.assertTrue(a.C == 0 and
-                        a.lc[0].link_color == 0 and
+                        a.lc[0].linkcolor == 0 and
                         a.lc[0].counter == 0)
 
     def test_dissection_with_specific_values(self):
         a = RPLMetricLC(b'\x08\x00\x00\x03\x00\xfa\x3f')
         self.assertTrue(a.C == 0 and
-                        a.lc[0].link_color == 1000 and
+                        a.lc[0].linkcolor == 1000 and
                         a.lc[0].counter == 63)
 
     def test_dissection_with_specific_values2(self):
         a = RPLMetricLC(b'\x08\x00\x00\x05\x00\xfa\x3f\xfa\x3f')
         self.assertTrue(a.C == 0 and
-                        a.lc[1].link_color == 1000 and
+                        a.lc[1].linkcolor == 1000 and
                         a.lc[1].counter == 63)
 
     def test_dissection_with_specific_values3(self):
         a = RPLMetricLC(b'\x08\x02\x00\x03\x00\xfa\x01')
         self.assertTrue(a.C == 1 and
-                        a.lc[0].link_color == 1000 and
-                        a.lc[0].i == 1)
+                        a.lc[0].linkcolor == 1000 and
+                        a.lc[0].I == 1)
 
     def test_dissection_with_specific_values4(self):
         a = RPLMetricLC(b'\x08\x02\x00\x05\x00\xfa\x01\xfa\x01')
         self.assertTrue(a.C == 1 and
-                        a.lc[1].link_color == 1000 and
-                        a.lc[1].i == 1)
+                        a.lc[1].linkcolor == 1000 and
+                        a.lc[1].I == 1)

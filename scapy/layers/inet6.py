@@ -998,7 +998,7 @@ class IPv6ExtHdrRPLSourceRouting(_IPv6ExtHdr):
                                   Address6Field("", "::",
                                                 lambda p: p.CmprI),
                                   count_from = lambda p: (p.len * 8 - (16 - p.CmprE)) // (16 - p.CmprI)),
-                   Address6Field("last_address", "::",
+                   Address6Field("last", "::",
                                  lambda p: p.CmprE)]
     overload_fields = {IPv6: { "nh": 43 }}
 
@@ -1850,30 +1850,29 @@ class ICMPv6NDOptARO(_ICMPv6NDGuessPayload, Packet): # RFC 6775
                    ByteField("status", 0),
                    ByteField("reserved1", 0),
                    ShortField("reserved2", 0),
-                   ShortField("registration_lifetime", 0),
-                   EUI64Field("eui_64", EUI64_ANY)]
+                   ShortField("lifetime", 0),
+                   EUI64Field("eui64", EUI64_ANY)]
 
 class ICMPv6NDOpt6CO(_ICMPv6NDGuessPayload, Packet): # RFC 6775
     name = "ICMPv6 Neighbor Discovery Option - 6LoWPAN Context Option"
     fields_desc = [ByteField("type", 34),
                    ByteField("len", 2),
-                   ByteField("context_length", 0),
-                   BitField("res", 0, 3),
+                   ByteField("contextlength", 0),
+                   BitField("reserved1", 0, 3),
                    BitField("C", 0, 1),
                    BitField("cid", 0, 4),
-                   ShortField("reserved", 0),
-                   ShortField("valid_lifetime", 0),
-                   Prefix6Field("context_prefix", "::/64",
+                   ShortField("reserved2", 0),
+                   ShortField("lifetime", 0),
+                   Prefix6Field("prefix", "::/64",
                                 lambda p: (p.len - 1) * 8)]
 
 class ICMPv6NDOptABRO(_ICMPv6NDGuessPayload, Packet): # RFC 6775
     name = "ICMPv6 Neighbor Discovery Option - Authoritative Border Router Option"
     fields_desc = [ByteField("type", 35),
                    ByteField("len", 3),
-                   ShortField("version_low", 0),
-                   ShortField("version_high", 0),
-                   ShortField("valid_lifetime", 0),
-                   IP6Field("sixlbr_address", "::")]
+                   IntField("version", 0),
+                   ShortField("lifetime", 0),
+                   IP6Field("address", "::")]
 
 class ICMPv6ND_DAR(_ICMPv6NDGuessPayload, _ICMPv6):
     name = "ICMPv6 Duplicate Address Request"
@@ -1882,9 +1881,9 @@ class ICMPv6ND_DAR(_ICMPv6NDGuessPayload, _ICMPv6):
                    XShortField("cksum", None),
                    ByteField("status", 0),
                    ByteField("reserved", 0),
-                   ShortField("registration_lifetime", 0),
-                   EUI64Field("eui_64", EUI64_ANY),
-                   IP6Field("registered_address", "::")]
+                   ShortField("lifetime", 0),
+                   EUI64Field("eui64", EUI64_ANY),
+                   IP6Field("address", "::")]
     overload_fields = {IPv6: { "nh": 58, "hlim": 64 }}
 
 class ICMPv6ND_DAC(ICMPv6ND_DAR):
@@ -3147,11 +3146,11 @@ class ICMPv6RPLOptRouteInformation(ICMPv6RPLOptUnknown):
     fields_desc = [ByteEnumField("type", 3, rplopts),
                    FieldLenField("len", None, length_of = "prefix", fmt = "B",
                                  adjust = lambda p, x: x + 6),
-                   ByteField("plen", 0),
-                   BitField("resvd1", 0, 3),
+                   ByteField("prefixlen", 0),
+                   BitField("reserved1", 0, 3),
                    BitField("prf", 0, 2),
-                   BitField("resvd2", 0, 3),
-                   IntField("route_lifetime", 0),
+                   BitField("reserved2", 0, 3),
+                   IntField("lifetime", 0),
                    Prefix6Field("prefix", "::/0",
                                 lambda p: p.len - 6)]
 
@@ -3162,64 +3161,64 @@ class ICMPv6RPLOptDODAGConfiguration(ICMPv6RPLOptUnknown):
                    BitField("flags", 0, 4),
                    BitField("A", 0, 1),
                    BitField("pcs", 0, 3),
-                   ByteField("dio_int_double", 0),
-                   ByteField("dio_int_min", 0),
-                   ByteField("dio_redun", 0),
-                   ShortField("max_rank_increase", 0),
-                   ShortField("min_hop_increase", 0),
+                   ByteField("diointdouble", 0),
+                   ByteField("diointmin", 0),
+                   ByteField("dioredundancy", 0),
+                   ShortField("maxrankinc", 0),
+                   ShortField("minhoprankinc", 0),
                    ShortField("ocp", 0),
                    ByteField("reserved", 0),
-                   ByteField("default_lifetime", 0),
-                   ShortField("lifetime_unit", 0)]
+                   ByteField("defaultlifetime", 0),
+                   ShortField("lifetimeunit", 0)]
 
 class ICMPv6RPLOptRPLTarget(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - RPL Target"
     fields_desc = [ByteEnumField("type", 5, rplopts),
-                   FieldLenField("len", None, length_of = "target_prefix",
+                   FieldLenField("len", None, length_of = "prefix",
                                  fmt = "B",
                                  adjust = lambda p, x: x + 2),
                    ByteField("flags", 0),
-                   ByteField("prefix_length", 0),
-                   Prefix6Field("target_prefix", "::/0",
+                   ByteField("prefixlen", 0),
+                   Prefix6Field("prefix", "::/0",
                                 lambda p: p.len - 2)]
 
 class ICMPv6RPLOptTransitInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Transit Information"
     fields_desc = [ByteEnumField("type", 6, rplopts),
-                   FieldLenField("len", None, length_of = "parent_address",
+                   FieldLenField("len", None, length_of = "address",
                                  fmt = "B",
                                  adjust = lambda p, x: x + 4),
                    BitField("E", 0, 1),
                    BitField("flags", 0, 7),
-                   ByteField("path_control", 0),
-                   ByteField("path_sequence", 0),
-                   ByteField("path_lifetime", 0),
-                   Prefix6Field("parent_address", "::/0",
+                   ByteField("control", 0),
+                   ByteField("sequence", 0),
+                   ByteField("lifetime", 0),
+                   Prefix6Field("address", "::/0",
                                 lambda p: p.len - 4)]
 
 class ICMPv6RPLOptSolicitedInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Solicited Information"
     fields_desc = [ByteEnumField("type", 7, rplopts),
                    ByteField("len", 19),
-                   ByteField("rpl_instance_id", 0),
+                   ByteField("instanceid", 0),
                    BitField("V", 0, 1),
                    BitField("I", 0, 1),
                    BitField("D", 0, 1),
                    BitField("flags", 0, 5),
                    IP6Field("dodagid", "::"),
-                   ByteField("version_number", 0)]
+                   ByteField("version", 0)]
 
 class ICMPv6RPLOptPrefixInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Prefix Information"
     fields_desc = [ByteEnumField("type", 8, rplopts),
                    ByteField("len", 30),
-                   ByteField("prefix_length", 0),
+                   ByteField("prefixlen", 0),
                    BitField("L", 0, 1),
                    BitField("A", 0, 1),
                    BitField("R", 0, 1),
                    BitField("reserved1", 0 , 5),
-                   IntField("valid_lifetime", 0),
-                   IntField("preferred_lifetime", 0),
+                   IntField("validlifetime", 0),
+                   IntField("preferredlifetime", 0),
                    IntField("reserved2", 0),
                    IP6Field("prefix", "::")]
 
@@ -3234,6 +3233,12 @@ rplmsgcls = {0 : "ICMPv6RPL_DIS",
              2 : "ICMPv6RPL_DAO",
              3 : "ICMPv6RPL_DAO_ACK"}
 
+rplmsgcode ={0 : "DIS",
+             1 : "DIO",
+             2 : "DAO",
+             3 : "DAO_ACK",
+             4 : "CC"}
+
 def _rpl_guesser(p):
     return get_cls(rplmsgcls.get(p[1], "Raw"), "Raw")
 
@@ -3246,7 +3251,7 @@ class _ICMPv6RPL:
 class ICMPv6RPL_DIS(_ICMPv6RPL, _ICMPv6, Packet):
     name = "RPL Control Message - DODAG Information Solicitation"
     fields_desc = [ByteEnumField("type", 155, icmp6types),
-                   ByteField("code", 0),
+                   ByteEnumField("code", 0, rplmsgcode),
                    XShortField("cksum", None),
                    ByteField("flags", 0),
                    ByteField("reserved", 0)]
@@ -3254,13 +3259,13 @@ class ICMPv6RPL_DIS(_ICMPv6RPL, _ICMPv6, Packet):
 class ICMPv6RPL_DIO(_ICMPv6RPL, _ICMPv6, Packet):
     name = "RPL Control Message - DODAG Information Object"
     fields_desc = [ByteEnumField("type", 155, icmp6types),
-                   ByteField("code", 1),
+                   ByteEnumField("code", 1, rplmsgcode),
                    XShortField("cksum", None),
-                   ByteField("rpl_instance_id", 0),
-                   ByteField("version_number", 0),
+                   ByteField("instanceid", 0),
+                   ByteField("version", 0),
                    ShortField("rank", 0),
                    BitField("G", 0, 1),
-                   BitField("O", 0, 1),
+                   BitField("Z", 0, 1),
                    BitField("mop", 0, 3),
                    BitField("prf", 0, 3),
                    ByteField("dtsn", 0),
@@ -3271,25 +3276,26 @@ class ICMPv6RPL_DIO(_ICMPv6RPL, _ICMPv6, Packet):
 class ICMPv6RPL_DAO(_ICMPv6RPL, _ICMPv6, Packet):
     name = "RPL Control Message - DODAG Advertisement Object"
     fields_desc = [ByteEnumField("type", 155, icmp6types),
-                   ByteField("code", 2),
+                   ByteEnumField("code", 2, rplmsgcode),
                    XShortField("cksum", None),
-                   ByteField("rpl_instance_id", 0),
+                   ByteField("instanceid", 0),
                    BitField("K", 0, 1),
                    BitField("D", 0, 1),
                    BitField("flags", 0, 6),
                    ByteField("reserved", 0),
-                   ByteField("dao_sequence", 0),
-                   IP6Field("dodagid", "::")]
+                   ByteField("daosequence", 0),
+                   ConditionalField(IP6Field("dodagid", "::"),
+                                    lambda p: p.D == 1)]
 
 class ICMPv6RPL_DAO_ACK(_ICMPv6RPL, _ICMPv6, Packet):
     name = "RPL Control Message - DODAG Advertisement Object Acknowledgement"
     fields_desc = [ByteEnumField("type", 155, icmp6types),
-                   ByteField("code", 3),
+                   ByteEnumField("code", 3, rplmsgcode),
                    XShortField("cksum", None),
-                   ByteField("rpl_instance_id", 0),
+                   ByteField("instanceid", 0),
                    BitField("D", 0, 1),
                    BitField("reserved", 0, 7),
-                   ByteField("dao_sequence", 0),
+                   ByteField("daosequence", 0),
                    ByteField("status", 0),
                    ConditionalField(IP6Field("dodagid", "::"),
                                     lambda p: p.D == 1)]
@@ -3299,12 +3305,12 @@ class ICMPv6RPL_CC(_ICMPv6RPL, _ICMPv6, Packet):
     fields_desc = [ByteEnumField("type", 155, icmp6types),
                    ByteField("code", 4),
                    XShortField("cksum", None),
-                   ByteField("rpl_instance_id", 0),
+                   ByteField("instanceid", 0),
                    BitField("R", 0, 1),
-                   BitField("reserved", 0, 7),
-                   ShortField("cc_nonce", 0),
+                   BitField("flags", 0, 7),
+                   ShortField("ccnonce", 0),
                    IP6Field("dodagid", "::"),
-                   IntField("destination_counter", 0)]
+                   IntField("dstcounter", 0)]
 
 
 ### RFC 6551
@@ -3330,7 +3336,7 @@ rplmetrics = { 0 : "Invalid",
 class _RPLDAGMC(Packet):
     name = "RPL DAG Metric Container which implements guess_payload_class()"
     fields_desc = [ByteEnumField("type", 0, rplmetrics),
-                   BitField("res_flags", 0, 5),
+                   BitField("reserved1", 0, 5),
                    BitField("P", 0, 1),
                    BitField("C", 0, 1),
                    BitField("O", 0, 1),
@@ -3347,7 +3353,7 @@ class RPLMetricNSA(_RPLDAGMC, Packet):
     type = 1
     len = 2
     fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
-                                           ByteField("res", 0),
+                                           ByteField("reserved2", 0),
                                            BitField("flags", 0, 6),
                                            BitField("a", 0, 1),
                                            BitField("o", 0, 1)]
@@ -3358,10 +3364,10 @@ class RPLMetricNE(_RPLDAGMC, Packet):
     len = 2
     fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
                                            BitField("flags", 0, 4),
-                                           BitField("i", 0, 1),
-                                           BitField("t", 0, 2),
-                                           BitField("e", 0, 1),
-                                           ByteField("e_e", 0)]
+                                           BitField("I", 0, 1),
+                                           BitField("T", 0, 2),
+                                           BitField("E", 0, 1),
+                                           ByteField("E_E", 0)]
 
 class RPLMetricHP(_RPLDAGMC, Packet):
     name = "RPL Metric - Hop Count Object"
@@ -3370,7 +3376,7 @@ class RPLMetricHP(_RPLDAGMC, Packet):
     fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
                                            BitField("res", 0, 4),
                                            BitField("flags", 0, 4),
-                                           ByteField("hop_count", 0)]
+                                           ByteField("hopcount", 0)]
 
 class RPLMetricThroughput(_RPLDAGMC, Packet):
     name = "RPL Metric - Throughput"
@@ -3401,7 +3407,7 @@ class RPLMetricLQL(_RPLDAGMC, Packet):
                                                         count_of = "lql",
                                                         fmt = "B",
                                                         adjust = lambda p, x: x + 1),
-                                          ByteField("res", 0),
+                                          ByteField("reseserved2", 0),
                                           PacketListField("lql",
                                                           RPLLQLType1(),
                                                           RPLLQLType1,
@@ -3417,16 +3423,16 @@ class RPLMetricETX(_RPLDAGMC, Packet):
 
 class RPLLCType1(Packet):
     name = "RPL Metric LC - Type 1 Sub-Object"
-    fields_desc = [BitField("link_color", 0, 10),
+    fields_desc = [BitField("linkcolor", 0, 10),
                    BitField("counter", 0, 6)]
     def extract_padding(self, p):
         return "", p
 
 class RPLLCType2(Packet):
     name = "RPL Metric LC - Type 2 Sub-Object"
-    fields_desc = [BitField("link_color", 0, 10),
+    fields_desc = [BitField("linkcolor", 0, 10),
                    BitField("reserved", 0, 5),
-                   BitField("i", 0, 1)]
+                   BitField("I", 0, 1)]
     def extract_padding(self, p):
         return "", p
 
@@ -3435,7 +3441,7 @@ class RPLMetricLC(_RPLDAGMC, Packet):
     type = 8
     len = 3
     fields_desc = _RPLDAGMC.fields_desc + [ByteField("len", 1),
-                                           ByteField("res", 0),
+                                           ByteField("reserved2", 0),
                                            ConditionalField(
                                                PacketListField("lc",
                                                           RPLLCType2(),
