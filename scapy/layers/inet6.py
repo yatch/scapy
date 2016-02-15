@@ -730,6 +730,7 @@ _hbhopts = { 0x00: "Pad1",
              0x04: "Tunnel Encapsulation Limit",
              0x05: "Router Alert",
              0x06: "Quick-Start",
+             0x63: "RPL Option",
              0xc2: "Jumbo Payload",
              0xc9: "Home Address Option" }
 
@@ -813,6 +814,21 @@ class Jumbo(Packet): # IPv6 Hop-By-Hop Option
         delta = x*((curpos - y + x - 1)//x) + y - curpos 
         return delta
 
+class RPLOption(Packet): # IPv6 Hop-By-Hop Option
+    name = "RPL Option"
+    fields_desc = [_OTypeField("otype", 0x63, _hbhopts),
+                   ByteField("optlen", 4),
+                   BitField("O", 0, 1),
+                   BitField("R", 0, 1),
+                   BitField("F", 0, 1),
+                   BitField("reserved", 0, 5),
+                   ByteField("instanceid", 0),
+                   ShortField("rank", 0)]
+    def alignment_delta(self, curpos): # alignment requirement : 4n+2
+        x = 4 ; y = 2
+        delta = x*((curpos - y + x - 1)//x) + y - curpos
+        return delta
+
 class HAO(Packet): # IPv6 Destination Options Header Option
     name = "Home Address Option"
     fields_desc = [_OTypeField("otype", 0xC9, _hbhopts),
@@ -823,9 +839,12 @@ class HAO(Packet): # IPv6 Destination Options Header Option
         delta = x*((curpos - y + x - 1)//x) + y - curpos 
         return delta
 
+
+
 _hbhoptcls = { 0x00: Pad1,
                0x01: PadN,
                0x05: RouterAlert,
+               0x63: RPLOption,
                0xC2: Jumbo,
                0xC9: HAO }
 
