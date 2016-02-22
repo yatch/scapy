@@ -574,7 +574,7 @@ class LoWPAN_IPHC(Packet):
         #print "decompressSourceAddr"
         try:
             tmp_ip = socket.inet_pton(socket.AF_INET6, self.sourceAddr)
-        except socket.error, e:
+        except socket.error as e:
             tmp_ip = "\x00"*16
         
         
@@ -935,10 +935,10 @@ if __name__ == '__main__':
     #packet.show2()
     
     #TODO: Neighbour Solicitation (1st packet *417 file)
-    print "##########################################"
+    print("##########################################")
     packet = LoWPAN_IPHC("\x7b\x49\x3a\x02\x01\xff\x02\x02\x02\x87\x00\x02\x0b\x00\x00\x00\x00\xfe\x80\x00\x00\x00\x00\x00\x00\x02\x12\x74\x02\x00\x02\x02\x02")
     packet.show2()
-    print packet._nhField, packet.tc_ecn, packet.tc_dscp, packet.__padd, packet.flowlabel
+    print(packet._nhField, packet.tc_ecn, packet.tc_dscp, packet.__padd, packet.flowlabel)
     assert packet._nhField == 0x3a
     assert packet.src == "::"
     assert packet.dst == "ff02::1:ff02:202"
@@ -1125,7 +1125,7 @@ if __name__ == '__main__':
     # echo reply
     packet2 = SixLoWPAN()/LoWPAN_IPHC(tf=3, nh=0, hlim=2, cid=True)/IPv6(src="aaaa::11:22ff:fe33:4455", dst="aaaa::1")/ICMPv6EchoRequest(id=ping_id,seq=ping_seq, data=ping_data)
     
-    print len(str(packet1)), len(str(packet2))
+    print(len(str(packet1)), len(str(packet2)))
     
     # HAND SHAKE (http://www.workrobot.com/sansfire2009/SCAPY-packet-crafting-reference.html)
     #ip=IP(src="10.1.2.3", dst="10.2.3.4")
