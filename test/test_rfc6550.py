@@ -194,7 +194,7 @@ class TransitInformation(unittest.TestCase):
                                            control = 255,
                                            sequence = 255,
                                            lifetime = 255,
-                                           address = "2001:db8::1/128")
+                                           address = "2001:db8::1")
         self.assertEqual(bytes(a),
                          b'\x06\x14\x80\xff\xff\xff\x20\x01\x0d\xb8\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01')
 
@@ -210,7 +210,7 @@ class TransitInformation(unittest.TestCase):
                         a.control == 255 and
                         a.sequence == 255 and
                         a.lifetime == 255 and
-                        a.address == "2001:db8::1/128")
+                        a.address == "2001:db8::1")
 
 class SolicitedInformation(unittest.TestCase):
     def test_basic_instantiation(self):

@@ -3202,16 +3202,24 @@ class ICMPv6RPLOptRPLTarget(ICMPv6RPLOptUnknown):
 class ICMPv6RPLOptTransitInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Transit Information"
     fields_desc = [ByteEnumField("type", 6, rplopts),
-                   FieldLenField("len", None, length_of = "address",
-                                 fmt = "B",
-                                 adjust = lambda p, x: x + 4),
+                   ByteField("len", None),
                    BitField("E", 0, 1),
                    BitField("flags", 0, 7),
                    ByteField("control", 0),
                    ByteField("sequence", 0),
                    ByteField("lifetime", 0),
-                   Prefix6Field("address", "::/0",
-                                lambda p: p.len - 4)]
+                   ConditionalField(IP6Field("address", None),
+                                    lambda p: p.len == 20)]
+    def post_build(self, p, pay):
+        if self.len == None:
+            if self.address == None:
+                p = p[:1] + struct.pack("B", 4) + p[2:]
+            else:
+                p = p[:1] + struct.pack("B", 20) + p[2:]
+        if self.address != None:
+            p += inet_pton(socket.AF_INET6, self.address)
+        return p + pay
+
 
 class ICMPv6RPLOptSolicitedInformation(ICMPv6RPLOptUnknown):
     name = "RPL Control Message Option - Solicited Information"
