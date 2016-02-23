@@ -499,10 +499,10 @@ class LoWPAN_IPHC(Packet):
             if self.dam == 0:
                 raise Exception("unimplemented")
             elif self.dam == 1:
-                tmp_ip = b"\xff" + tmp_ip[16 - destiny_addr_mode(self)] + \
+                tmp_ip = b"\xff" + struct.pack("B", tmp_ip[16 - destiny_addr_mode(self)]) + \
                     b"\x00"*9 + tmp_ip[-5:]
             elif self.dam == 2:
-                tmp_ip = b"\xff" + tmp_ip[16 - destiny_addr_mode(self)] + \
+                tmp_ip = b"\xff" + struct.pack("B", tmp_ip[16 - destiny_addr_mode(self)]) + \
                     b"\x00"*11 + tmp_ip[-3:]
             else: # self.dam == 3:
                 tmp_ip = b"\xff\x02" + b"\x00"*13 + tmp_ip[-1:]
@@ -558,9 +558,9 @@ class LoWPAN_IPHC(Packet):
                 tmp_ip = b"\x00"*14 + tmp_ip[14:16]
         elif self.m == 1 and self.dac == 0:
             if self.dam == 0x1:
-                tmp_ip = b"\x00"*10 + tmp_ip[1] + tmp_ip[11:16]
+                tmp_ip = b"\x00"*10 + struct.pack("B", tmp_ip[1]) + tmp_ip[11:16]
             elif self.dam == 0x2:
-                tmp_ip = b"\x00"*12 + tmp_ip[1] + tmp_ip[13:16]
+                tmp_ip = b"\x00"*12 + struct.pack("B", tmp_ip[1]) + tmp_ip[13:16]
             elif self.dam == 0x3:
                 tmp_ip = b"\x00"*15 + tmp_ip[15:16]
         elif self.m == 1 and self.dac == 1:
