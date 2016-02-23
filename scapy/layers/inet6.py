@@ -1018,7 +1018,11 @@ class IPv6ExtHdrRPLSourceRouting(_IPv6ExtHdr):
                                                 lambda p: p.CmprI),
                                   count_from = lambda p: (p.len * 8 - (16 - p.CmprE)) // (16 - p.CmprI)),
                    Address6Field("last", "::",
-                                 lambda p: p.CmprE)]
+                                 lambda p: p.CmprE),
+                   ConditionalField(StrLenField("padding", None,
+                                                length_from = lambda p: p.pad),
+                                    lambda p: p.pad != 0)]
+
     overload_fields = {IPv6: { "nh": 43 }}
 
     def post_build(self, pkt, pay):
@@ -1029,7 +1033,6 @@ class IPv6ExtHdrRPLSourceRouting(_IPv6ExtHdr):
             padlen = (8 - addrslen % 8) % 8
             pkt = pkt[:5] + struct.pack("B",  padlen << 4) + pkt[6:] + b'\x00' * padlen
         return _IPv6ExtHdr.post_build(self, pkt, pay)
-
 
 
 ########################### Fragmentation Header ############################
