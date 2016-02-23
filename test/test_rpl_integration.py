@@ -75,6 +75,14 @@ class Dissection(unittest.TestCase):
         self.assertEqual(a[ICMPv6RPL_DAO_ACK].status, 0)
 
     def test_dissect_udp(self):
+        str = b'\x61\xdc\x33\xcd\xab\x05\x00\x05\x00\x05\x00\x05\x00\x02\x00\x02\x00\x02\x00\x02\x00\x7e\xf5\x00\x02\x01\x00\x01\x00\x01\x00\x01\xf0\x04\xd2\x04\xd2\xe5\x64\x4d\x65\x73\x73\x61\x67\x65\x20\x30\x00\xb6\xc7' 
+        a = self.dissect(str)
+        self.assertEqual(a[IPv6].src, 'aaaa::202:2:2:2')
+        self.assertEqual(a[IPv6].dst, 'aaaa::201:1:1:1')
+        self.assertEqual(a[UDP].sport, 1234)
+        self.assertEqual(a[UDP].dport, 1234)
+
+    def test_dissect_udp2(self):
         str = b'\x61\xdc\x2d\xcd\xab\x06\x00\x06\x00\x06\x00\x06\x00\x05\x00\x05\x00\x05\x00\x05\x00\x7c\xd5\x00\x3f\x02\x02\x00\x02\x00\x02\x00\x02\x02\x01\x00\x01\x00\x01\x00\x01\xf0\x04\xd2\x04\xd2\xe5\x64\x4d\x65\x73\x73\x61\x67\x65\x20\x30\x00\x85\xed'
         a = self.dissect(str)
         log.debug(a.show())
@@ -104,10 +112,4 @@ if __name__ == "__main__":
     logging.basicConfig( stream=sys.stderr )
     logging.getLogger('test_logger').setLevel(logging.DEBUG)
     unittest.main()
-
-
-
-
-
-
 
