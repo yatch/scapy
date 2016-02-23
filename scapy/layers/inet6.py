@@ -1611,7 +1611,6 @@ icmp6ndoptscls = { 1: "ICMPv6NDOptSrcLLAddr",
 class _ICMPv6NDGuessPayload:
     name = "Dummy ND class that implements guess_payload_class()"
     def guess_payload_class(self,p):
-        print(p)
         if len(p) > 1:
             #return get_cls(icmp6ndoptscls.get(ord(p[0]),"Raw"), "Raw") # s/Raw/ICMPv6NDOptUnknown/g ?
             return get_cls(icmp6ndoptscls.get(p[0],"Raw"), "Raw") # s/Raw/ICMPv6NDOptUnknown/g ?
