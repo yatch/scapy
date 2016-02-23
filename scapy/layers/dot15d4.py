@@ -503,8 +503,8 @@ class Dot15d4CmdCoordRealign(Packet):
 ### ZigBee ###
 
 class ZigbeePayloadField(StrField): # passes the remaining length of the current frame to do a relational offset such as all but the last 4 bytes.
-    def __init__(self, name, default, codec=None, fld=None, length_from=None):
-        StrField.__init__(self, name, default, codec=codec)
+    def __init__(self, name, default, fld=None, length_from=None):
+        StrField.__init__(self, name, default)
         self.length_from = length_from
     def getfield(self, pkt, s):
         l = self.length_from(pkt, s)
