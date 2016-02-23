@@ -1635,18 +1635,17 @@ class ICMPv6NDOptSrcLLAddr(_ICMPv6NDGuessPayload, Packet):
                     ConditionalField(MACField("lladdr", ETHER_ANY),
                                      lambda p: p.len == 1),
                     ConditionalField(EUI64Field("lladdr", EUI64_ANY),
+                                     lambda p: p.len == 2),
+                    ConditionalField(StrLenField("padding", None,
+                                                 length_from = lambda p: 6),
                                      lambda p: p.len == 2)]
+
     def post_build(self, p, pay):
         if self.len == None:
             p = p[:1] + len(p.lladdr) / 8 + p[2:]
         return p + pay
     def mysummary(self):                        
         return self.sprintf("%name% %lladdr%")
-    def extract_padding(self, s):
-        padlen = 0
-        if self.len == 2:
-            padlen = 6
-        return s[padlen:], s[:padlen]
 
 class ICMPv6NDOptDstLLAddr(ICMPv6NDOptSrcLLAddr):
     name = "ICMPv6 Neighbor Discovery Option - Destination Link-Layer Address"
