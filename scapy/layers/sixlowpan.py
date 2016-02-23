@@ -502,6 +502,8 @@ class LoWPAN_IPHC(Packet):
             prefix = self.get_prefix(self.contextIdentifierExtension)
             if self.dam == 0:
                 raise Exception('Reserved')
+            elif self.dam == 0x1:
+                tmp_ip = prefix + tmp_ip[8:]
             elif self.dam == 0x3:
                 underlayer = self.underlayer
                 while underlayer != None and isinstance(underlayer, SixLoWPAN):
@@ -632,8 +634,9 @@ class LoWPAN_IPHC(Packet):
             prefix = self.get_prefix(self.contextIdentifierExtension)
             if self.sam == 0x0:
                 pass
+            elif self.sam == 0x1:
+                tmp_ip = prefix + tmp_ip[8:]
             elif self.sam == 0x2:
-                #TODO: take context IID
                 tmp_ip = prefix + b"\x00\x00\x00\xff\xfe\x00" + \
                     tmp_ip[16 - source_addr_mode2(self):16]
             elif self.sam == 0x3:
