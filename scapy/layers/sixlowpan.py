@@ -356,10 +356,10 @@ class LoWPAN_IPHC(Packet):
             lambda pkt: pkt.cid == 0x1
         ),
         #TODO: THIS IS WRONG!!!!!
-        BitVarSizeField("tc_ecn", 0, calculate_length = lambda pkt: tf_last_attempt(pkt)[0]),
-        BitVarSizeField("tc_dscp", 0, calculate_length = lambda pkt: tf_last_attempt(pkt)[1]),
-        BitVarSizeField("__padd", 0, calculate_length = lambda pkt: tf_last_attempt(pkt)[2]),
-        BitVarSizeField("flowlabel", 0, calculate_length = lambda pkt: tf_last_attempt(pkt)[3]),
+        #BitVarSizeField("tc_ecn", 0, calculate_length = lambda pkt: tf_last_attempt(pkt)[0]),
+        #BitVarSizeField("tc_dscp", 0, calculate_length = lambda pkt: tf_last_attempt(pkt)[1]),
+        #BitVarSizeField("__padd", 0, calculate_length = lambda pkt: tf_last_attempt(pkt)[2]),
+        #BitVarSizeField("flowlabel", 0, calculate_length = lambda pkt: tf_last_attempt(pkt)[3]),
 
         #NH
         ConditionalField(
