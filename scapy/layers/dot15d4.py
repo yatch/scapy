@@ -320,7 +320,7 @@ class Dot15d4(Packet):
         #TODO find a more elegant way to do this
         if self.fcf_frametype == 2 and self.fcf_destaddrmode != 0:
             self.fcf_destaddrmode = 0
-            return str(self)
+            return bytes(self)
         else:
             return p + pay
 
@@ -344,7 +344,7 @@ class Dot15d4FCS(Dot15d4, Packet):
         #TODO find a more elegant way to do this
         if self.fcf_frametype == 2 and self.fcf_destaddrmode != 0:
             self.fcf_destaddrmode = 0
-            return str(self)
+            return bytes(self)
         else:
             return p + pay + makeFCS(p+pay) #construct the packet with the FCS at the end
 
