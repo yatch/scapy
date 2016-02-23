@@ -486,7 +486,7 @@ class LoWPAN_IPHC(Packet):
                     if underlayer.underlayer.fcf_destaddrmode == 3:
                         tmp_ip = LINK_LOCAL_PREFIX[0:8] + struct.pack(">Q", underlayer.dest_addr)
                         #Turn off the bit 7.
-                        tmp_ip = tmp_ip[0:8] + struct.pack("B", (struct.unpack("B", tmp_ip[8])[0] ^ 0x2)) + tmp_ip[9:16]
+                        tmp_ip = tmp_ip[0:8] + struct.pack("B", tmp_ip[8] ^ 0x2) + tmp_ip[9:16]
                     elif underlayer.underlayer.fcf_destaddrmode == 2:
                         tmp_ip = LINK_LOCAL_PREFIX[0:8] + \
                             b"\x00\x00\x00\xff\xfe\x00" + \
@@ -595,7 +595,7 @@ class LoWPAN_IPHC(Packet):
                     if underlayer.underlayer.fcf_srcaddrmode == 3:
                         tmp_ip = LINK_LOCAL_PREFIX[0:8] + struct.pack(">Q", underlayer.src_addr)
                         #Turn off the bit 7.
-                        tmp_ip = tmp_ip[0:8] + struct.pack("B", (struct.unpack("B", tmp_ip[8])[0] ^ 0x2)) + tmp_ip[9:16]
+                        tmp_ip = tmp_ip[0:8] + struct.pack("B", tmp_ip[8] ^ 0x2) + tmp_ip[9:16]
                     elif underlayer.underlayer.fcf_srcaddrmode == 2:
                         tmp_ip = LINK_LOCAL_PREFIX[0:8] + \
                             b"\x00\x00\x00\xff\xfe\x00" + \
