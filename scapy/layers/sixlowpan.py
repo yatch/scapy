@@ -278,11 +278,11 @@ def destiny_addr_mode(pkt):
 def nhc_port(pkt):
     if not pkt.nh:
         return 0, 0
-    if pkt.header_compression & 0x3 == 0x3:
+    if pkt.header_compression & 0x03 == 0x3:
         return 4, 4
-    elif pkt.header_compression & 0x2 == 0x2:
+    elif pkt.header_compression & 0x03 == 0x2:
         return 8, 16
-    elif pkt.header_compression & 0x1 == 0x1:
+    elif pkt.header_compression & 0x03 == 0x1:
         return 16, 8
     else:
         return 16, 16
@@ -377,21 +377,20 @@ class LoWPAN_IPHC(Packet):
         # LoWPAN_UDP Header Compression ########################################
         # TODO: IMPROVE!!!!!
         ConditionalField(
-            FlagsField("header_compression", 0, 8, ["A", "B", "C", "D", "E", "C", "PS", "PD"]),
+            ByteField("header_compression", 0),
             lambda pkt: pkt.nh
         ),
         ConditionalField(
             BitFieldLenField("udpSourcePort", 0x0, 16, length_of = lambda pkt: nhc_port(pkt)[0]),
-            #ShortField("udpSourcePort", 0x0),
-            lambda pkt: pkt.nh and pkt.header_compression & 0x2 == 0x0
+            lambda pkt: pkt.nh and pkt.header_compression & 0xf0 == 0xf0
         ),
         ConditionalField(
             BitFieldLenField("udpDestinyPort", 0x0, 16, length_of = lambda pkt: nhc_port(pkt)[1]),
-            lambda pkt: pkt.nh and pkt.header_compression & 0x1 == 0x0
+            lambda pkt: pkt.nh and pkt.header_compression & 0xf0 == 0xf0
         ),
         ConditionalField(
             XShortField("udpChecksum", 0x0),
-            lambda pkt: pkt.nh and pkt.header_compression & 0x4 == 0x0
+            lambda pkt: pkt.nh and pkt.header_compression & 0xf0 == 0xf0
         ),
         
     ]
@@ -731,7 +730,7 @@ class SixLoWPAN(Packet):
             return LoWPANFragmentationSubsequent
         elif payload[0] >> 6 == 0x02:
             return LoWPANMesh
-        elif payload[0] >> 6 == 0x01:
+        elif payload[0] >> 5 == 0x03:
             return LoWPAN_IPHC
         else:
             return payload
