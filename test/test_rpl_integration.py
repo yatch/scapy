@@ -86,10 +86,7 @@ class Dissection(unittest.TestCase):
     def test_dissect_udp_with_srh(self):
         str = b'\x61\xdc\xa9\xcd\xab\x08\x00\x08\x00\x08\x00\x08\x00\x07\x00\x07\x00\x07\x00\x07\x00\x78\xd7\x00\x2b\x3f\x02\x03\x00\x03\x00\x03\x00\x03\x29\x03\x03\x02\x99\x30\x00\x00\x07\x00\x07\x00\x07\x00\x07\x04\x00\x04\x00\x04\x00\x04\x01\x00\x01\x00\x01\x00\x01\x00\x00\x00\x60\x00\x00\x00\x00\x12\x11\x3c\xaa\xaa\x00\x00\x00\x00\x00\x00\x02\x02\x00\x02\x00\x02\x00\x02\xaa\xaa\x00\x00\x00\x00\x00\x00\x02\x01\x00\x01\x00\x01\x00\x01\x04\xd2\x04\xd2\x00\x12\xe5\x64\x4d\x65\x73\x73\x61\x67\x65\x20\x30\x00\x9a\x12'
         a = self.dissect(str)
-        log.debug(a.summary())
-        log.debug(a.show())
-
-        self.assertEqual(a[IPv6].src, 'aaaa::203:3:3:4')
+        self.assertEqual(a[IPv6].src, 'aaaa::203:3:3:3')
         self.assertEqual(a[IPv6].dst, 'aaaa::208:8:8:8')
         self.assertEqual(a[IPv6ExtHdrRPLSourceRouting].segleft, 2)
         self.assertEqual(a[IPv6ExtHdrRPLSourceRouting].CmprI, 9)
@@ -97,6 +94,8 @@ class Dissection(unittest.TestCase):
         self.assertEqual(a[IPv6ExtHdrRPLSourceRouting].pad, 3)
         self.assertEqual(a[IPv6ExtHdrRPLSourceRouting].addresses, ['aaaa::207:7:7:7', 'aaaa::204:4:4:4'])
         self.assertEqual(a[IPv6ExtHdrRPLSourceRouting].last, 'aaaa::201:1:1:1')
+        self.assertEqual(a[IPv6ExtHdrRPLSourceRouting][IPv6].src, 'aaaa::202:2:2:2')
+        self.assertEqual(a[IPv6ExtHdrRPLSourceRouting][IPv6].dst, 'aaaa::201:1:1:1')
         self.assertEqual(a[UDP].sport, 1234)
         self.assertEqual(a[UDP].dport, 1234)
 
