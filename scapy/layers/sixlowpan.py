@@ -53,7 +53,7 @@ from scapy.layers.inet6 import IPv6, IP6Field, ICMPv6EchoRequest
 from scapy.layers.inet import UDP
 from scapy.utils6 import in6_or, in6_and, in6_xor
 
-from dot15d4 import Dot15d4, Dot15d4Data, Dot15d4FCS, dot15d4AddressField
+from scapy.layers.dot15d4 import Dot15d4, Dot15d4Data, Dot15d4FCS, dot15d4AddressField
 from scapy.utils import lhex, hexdump
 
 from scapy.route6 import *
