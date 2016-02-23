@@ -145,7 +145,7 @@ class SixLoWPANAddrField(Field):
             return s + struct.pack(self.fmt[0]+"Q", val)
         elif self.length_of(pkt) == 128:
             #TODO: FIX THE PACKING!!
-            return s + struct.pack(self.fmt[0]+"16s", str(val))
+            return s + struct.pack(self.fmt[0]+"16s", bytes(val))
         else:
             return s
     def getfield(self, pkt, s):
@@ -447,13 +447,13 @@ class LoWPAN_IPHC(Packet):
                 udp.dport = 0xF0B0 + d
             
             packet.payload = udp/data
-            data = str(packet)
+            data = bytes(packet)
         #else self.nh == 0 not necesary
         elif self._nhField & 0xE0 == 0xE0: # IPv6 Extension Header Decompression
             raise Exception('Unimplemented: IPv6 Extension Header decompression')
         else:
             packet.payload = data
-            data = str(packet)
+            data = bytes(packet)
         
         return Packet.post_dissect(self, data)
         
@@ -675,9 +675,9 @@ class LoWPAN_IPHC(Packet):
         ipv6 = self.payload
         
         if self.header_compression & 240 == 240: #TODO: UDP header IMPROVE
-            return str(self.payload)[40+16:]
+            return bytes(self.payload)[40+16:]
         else:
-            return str(self.payload)[40:]
+            return bytes(self.payload)[40:]
     
     def _getTrafficClassAndFlowLabel(self):
         """Page 6, draft feb 2011 """
@@ -711,7 +711,7 @@ MAX_SIZE = 96
 def fragmentate(packet, datagram_tag):
     """Split a packet into different links to transmit as 6lowpan packets.
     """
-    str_packet = str(packet)
+    str_packet = bytes(packet)
 
     if len(str_packet) <= MAX_SIZE:
         return [packet]
@@ -734,10 +734,10 @@ def fragmentate(packet, datagram_tag):
 #    for p in packet_list:
 #        if type(p.payload) == LoWPANFragmentationFirst:
 #            #print type(p.payload.payload)
-#            payload = str(SixLoWPAN(p.payload.payload))
+#            payload = bytes(SixLoWPAN(p.payload.payload))
 #        elif type(p.payload) == LoWPANFragmentationSubsequent:
-#            print str(p.payload)
-#            payload.payload += str(p.payload.payload)
+#            print bytes(p.payload)
+#            payload.payload += bytes(p.payload.payload)
 #        else:
 #            raise Exception
 #    return SixLoWPAN(payload)
@@ -768,7 +768,7 @@ if __name__ == '__main__':
     #    IPv6(src="AAAA:BBBB:CCCC:DDDD:EEEE:FFFF:0000:1111")
     #ip6_packet.show()
     #ip6_packet.show2()
-    #print str(ip6_packet)
+    #print bytes(ip6_packet)
 
 
     # some sample packet extracted
@@ -870,7 +870,7 @@ if __name__ == '__main__':
     assert p.datagramTag == 0x2a
     assert p.datagramOffset == 232/8
     #p.show2()
-    #print str(p.payload.payload).encode('hex')
+    #print bytes(p.payload.payload).encode('hex')
     
     #udp 5
     udp = "\xe2\x9c\x00\x2a\x29\x39\x20\x6f\x20\x33\x34\x35\x36\x37\x38\x39\x20\x70\x20\x33\x34\x35\x36\x37\x38\x39\x20\x71\x20\x33\x34\x35\x36\x37\x38\x39\x20\x72\x20\x33\x34\x35\x36\x37\x38\x39\x20\x73\x20\x33\x34\x35\x36\x37\x38\x39\x20\x74\x20\x33\x34\x35\x36\x37\x38\x39\x20\x75\x20\x33\x34\x35\x36\x37\x38\x39\x20\x76\x20\x33\x34\x35\x36\x37\x38\x39\x20\x77\x20\x33\x34\x35\x36\x37\x38\x39\x20\x78\x20\x33\x34"
@@ -909,7 +909,7 @@ if __name__ == '__main__':
     #print
     #print
     #p = LoWPAN_IPHC()/IPv6("6000000000000000aaaa000000000000001122fffe334455aaaa00000000000000000000000000018000c4cd00000000".decode('hex'))
-    #print str(p).encode('hex')
+    #print bytes(p).encode('hex')
     
     
     
@@ -1064,45 +1064,45 @@ if __name__ == '__main__':
     
     # Check Traffic Class and Flow Label when TF=0
     packet = SixLoWPAN()/LoWPAN_IPHC(tf=0)/IPv6(tc = 12, fl=467)
-    packet = SixLoWPAN(str(packet))
+    packet = SixLoWPAN(bytes(packet))
     assert (packet.tc_ecn << 6) + packet.tc_dscp == 12
     assert packet.flowlabel == 467
     # Check Traffic Class and Flow Label when TF=1
     packet = SixLoWPAN()/LoWPAN_IPHC(tf=1)/IPv6(tc = 12, fl=467)
-    packet = SixLoWPAN(str(packet))
+    packet = SixLoWPAN(bytes(packet))
     assert packet.tc_ecn == 0 and packet.flowlabel == 467
     # Check Traffic Class and Flow Label when TF=2
     packet = SixLoWPAN()/LoWPAN_IPHC(tf=2)/IPv6(tc = 12, fl=467)
-    packet = SixLoWPAN(str(packet))
+    packet = SixLoWPAN(bytes(packet))
     assert (packet.tc_ecn << 6) + packet.tc_dscp == 12 and packet.flowlabel == 0
     packet = SixLoWPAN()/LoWPAN_IPHC(tf=3)/IPv6(tc = 12, fl=467)
-    packet = SixLoWPAN(str(packet))
+    packet = SixLoWPAN(bytes(packet))
     assert (packet.tc_ecn << 6) + packet.tc_dscp == 0 and packet.flowlabel == 0
     
     #TODO: Next Header Test
     
     #Checking the Hop Limit value in the IPv6 packet decompressed
     packet = SixLoWPAN()/LoWPAN_IPHC()/IPv6(tc = 12, fl=467, hlim=65)/ICMPv6EchoRequest()
-    packet = SixLoWPAN(str(packet))
+    packet = SixLoWPAN(bytes(packet))
     assert packet.payload.payload.hlim == 65
     packet = SixLoWPAN()/LoWPAN_IPHC(hlim=1)/IPv6(tc = 12, fl=467, hlim=65)/ICMPv6EchoRequest()
-    packet = SixLoWPAN(str(packet))
+    packet = SixLoWPAN(bytes(packet))
     assert packet.payload.payload.hlim == 1
     packet = SixLoWPAN()/LoWPAN_IPHC(hlim=2)/IPv6(tc = 12, fl=467, hlim=65)/ICMPv6EchoRequest()
-    packet = SixLoWPAN(str(packet))
+    packet = SixLoWPAN(bytes(packet))
     assert packet.payload.payload.hlim == 64
     packet = SixLoWPAN()/LoWPAN_IPHC(hlim=3)/IPv6(tc = 12, fl=467, hlim=65)/ICMPv6EchoRequest()
-    packet = SixLoWPAN(str(packet))
+    packet = SixLoWPAN(bytes(packet))
     assert packet.payload.payload.hlim == 255
     
     #TODO: Context Test
     
     # Check Source Address
     #packet = SixLoWPAN()/LoWPAN_IPHC(sam = 0, sac = 0)/IPv6(hlim=65, src="aaaa::1")/ICMPv6EchoRequest()
-    #packet = SixLoWPAN(str(packet))
+    #packet = SixLoWPAN(bytes(packet))
     #assert packet.payload.payload.src == "::1" # NO CONTEXT
     #packet = SixLoWPAN()/LoWPAN_IPHC(sam = 2, sac = 0)/IPv6(hlim=65, src="aaaa::1")/ICMPv6EchoRequest()
-    #packet = SixLoWPAN(str(packet))
+    #packet = SixLoWPAN(bytes(packet))
     #assert packet.payload.payload.src == "fe80::ff:fe00:1" # NO CONTEXT
     
     # Check Destiny Address
@@ -1120,12 +1120,12 @@ if __name__ == '__main__':
     packet1 = SixLoWPAN()/LoWPAN_IPHC(tf=3, nh=0, hlim=2, cid=True)/IPv6(src="aaaa::11:22ff:fe33:4455", dst="aaaa::1")/ICMPv6EchoRequest(id=ping_id,seq=ping_seq, data=ping_data)
     #packet.show2()
     
-    SixLoWPAN(str(packet)).show2()
+    SixLoWPAN(bytes(packet)).show2()
     
     # echo reply
     packet2 = SixLoWPAN()/LoWPAN_IPHC(tf=3, nh=0, hlim=2, cid=True)/IPv6(src="aaaa::11:22ff:fe33:4455", dst="aaaa::1")/ICMPv6EchoRequest(id=ping_id,seq=ping_seq, data=ping_data)
     
-    print(len(str(packet1)), len(str(packet2)))
+    print(len(bytes(packet1)), len(bytes(packet2)))
     
     # HAND SHAKE (http://www.workrobot.com/sansfire2009/SCAPY-packet-crafting-reference.html)
     #ip=IP(src="10.1.2.3", dst="10.2.3.4")
@@ -1142,7 +1142,7 @@ if __name__ == '__main__':
     
     # ROUTER ADVERTISEMENT
     p = Dot15d4FCS("\x41\xc8\x58\xcd\xab\xff\xff\x16\x15\x14\xfe\xff\x13\x12\x02\x7b\x3b\x3a\x01\x86\x00\xf7\x2e\x80\x00\x00\xc8\x00\x05\x7e\x40\x00\x00\x00\x00\x03\x04\x40\xc0\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x05\x01\x00\x00\x00\x00\x05\x00\x01\x02\x02\x12\x13\xff\xfe\x14\x15\x16\x6c\x6f\x63\x61\x6c\x00\x3e\x14")
-    #Dot15d4FCS(str(p)).show2()
+    #Dot15d4FCS(bytes(p)).show2()
     
     p = IPv6("\x60\x00\x00\x00\x00\x48\x3a\xff\xfe\x80\x00\x00\x00\x00\x00\x00\x00\x12\x13\xff\xfe\x14\x15\x16\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x86\x00\xf7\x2e\x80\x00\x00\xc8\x00\x05\x7e\x40\x00\x00\x00\x00\x03\x04\x40\xc0\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x05\x01\x00\x00\x00\x00\x05\x00\x01\x02\x02\x12\x13\xff\xfe\x14\x15\x16\x6c\x6f\x63\x61\x6c\x00")
     p.show2()
