@@ -352,7 +352,7 @@ class LoWPAN_IPHC(Packet):
         BitEnumField("dac", 0x0, 1, [False, True]),
         BitField("dam", 0x0, 2),
         ConditionalField(
-            ByteField("__contextIdentifierExtension", 0x0), #
+            ByteField("contextIdentifierExtension", 0x0),
             lambda pkt: pkt.cid == 0x1
         ),
         #TODO: THIS IS WRONG!!!!!
@@ -396,6 +396,30 @@ class LoWPAN_IPHC(Packet):
         
     ]
     
+
+    context = {}
+    @classmethod
+    def set_context(cls, cid, context):
+        try:
+            prefix, plen = context.split('/')
+        except:
+            raise Exception('Invalid format for prefix')
+
+        if int(plen) > 64:
+            raise Exception('Too long prefix')
+        cls.context[cid] = context
+    @classmethod
+    def get_prefix(cls, cid):
+        if cid in cls.context:
+            try:
+                prefix, plen = cls.context[cid].split('/')
+                prefix_b = socket.inet_pton(socket.AF_INET6, prefix)
+                return prefix_b[:(int(plen) // 8)]
+            except:
+                raise Exception('Invalid format for prefix')
+        else:
+            return b'\x00'  * 8
+
     def post_dissect(self, data):
         """dissect the IPv6 package compressed into this IPHC packet.
 
@@ -476,6 +500,7 @@ class LoWPAN_IPHC(Packet):
                 raise Exception('Unimplemented')"""
             
         elif self.m == 0 and self.dac == 1:
+            prefix = self.get_prefix(self.contextIdentifierExtension)
             if self.dam == 0:
                 raise Exception('Reserved')
             elif self.dam == 0x3:
@@ -484,11 +509,11 @@ class LoWPAN_IPHC(Packet):
                     underlayer = underlayer.underlayer
                 if type(underlayer) == Dot15d4Data:
                     if underlayer.underlayer.fcf_destaddrmode == 3:
-                        tmp_ip = LINK_LOCAL_PREFIX[0:8] + struct.pack(">Q", underlayer.dest_addr)
+                        tmp_ip = prefix + struct.pack(">Q", underlayer.dest_addr)
                         #Turn off the bit 7.
                         tmp_ip = tmp_ip[0:8] + struct.pack("B", tmp_ip[8] ^ 0x2) + tmp_ip[9:16]
                     elif underlayer.underlayer.fcf_destaddrmode == 2:
-                        tmp_ip = LINK_LOCAL_PREFIX[0:8] + \
+                        tmp_ip = prefix + \
                             b"\x00\x00\x00\xff\xfe\x00" + \
                             struct.pack(">Q", underlayer.dest_addr)
                 else:
@@ -605,14 +630,21 @@ class LoWPAN_IPHC(Packet):
                     #Most of the times, it's necessary the IEEE 802.15.4 data to extract this address
                     raise Exception('Unimplemented: IP Header is contained into IEEE 802.15.4 frame, in this case it\'s not available.')
         else: #self.sac == 1:
+            prefix = self.get_prefix(self.contextIdentifierExtension)
             if self.sam == 0x0:
                 pass
             elif self.sam == 0x2:
                 #TODO: take context IID
-                tmp_ip = LINK_LOCAL_PREFIX[0:8] + b"\x00\x00\x00\xff\xfe\x00" + \
+                tmp_ip = prefix + b"\x00\x00\x00\xff\xfe\x00" + \
                     tmp_ip[16 - source_addr_mode2(self):16]
             elif self.sam == 0x3:
-                tmp_ip = LINK_LOCAL_PREFIX[0:8] + b"\x00"*8 #TODO: CONTEXT ID
+                underlayer = self.underlayer
+                if underlayer != None:
+                    while underlayer != None and isinstance(underlayer, SixLoWPAN):
+                        underlayer = underlayer.underlayer
+                    assert type(underlayer) == Dot15d4Data
+                tmp_ip = prefix + struct.pack(">Q", underlayer.src_addr)
+                tmp_ip = tmp_ip[0:8] + struct.pack("B", tmp_ip[8] ^ 0x2) + tmp_ip[9:16]
             else:
                 raise Exception('Unimplemented')
         
