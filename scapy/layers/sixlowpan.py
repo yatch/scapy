@@ -674,10 +674,8 @@ class LoWPAN_IPHC(Packet):
     def do_build_payload(self):
         ipv6 = self.payload
         
-        if self.header_compression & 240 == 240: #TODO: UDP header IMPROVE
-            return bytes(self.payload)[40+16:]
-        else:
-            return bytes(self.payload)[40:]
+        # TODO: Need proper logic
+        return bytes(self.payload)[40:]
     
     def _getTrafficClassAndFlowLabel(self):
         """Page 6, draft feb 2011 """
