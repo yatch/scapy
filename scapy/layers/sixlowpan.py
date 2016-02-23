@@ -695,13 +695,13 @@ class SixLoWPAN(Packet):
 
     def guess_payload_class(self, payload):
         """Depending on the payload content, the frame type we should interpretate"""
-        if ord(payload[0]) >> 3 == 0x18:
+        if payload[0] >> 3 == 0x18:
             return LoWPANFragmentationFirst
-        elif ord(payload[0]) >> 3 == 0x1C:
+        elif payload[0] >> 3 == 0x1C:
             return LoWPANFragmentationSubsequent
-        elif ord(payload[0]) >> 6 == 0x02:
+        elif payload[0] >> 6 == 0x02:
             return LoWPANMesh
-        elif ord(payload[0]) >> 6 == 0x01:
+        elif payload[0] >> 6 == 0x01:
             return LoWPAN_IPHC
         else:
             return payload
