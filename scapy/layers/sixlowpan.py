@@ -500,7 +500,7 @@ class LoWPAN_IPHC(Packet):
                 raise Exception("unimplemented")
             elif self.dam == 1:
                 tmp_ip = b"\xff" + tmp_ip[16 - destiny_addr_mode(self)] + \
-                    "\x00"*9 + tmp_ip[-5:]
+                    b"\x00"*9 + tmp_ip[-5:]
             elif self.dam == 2:
                 tmp_ip = b"\xff" + tmp_ip[16 - destiny_addr_mode(self)] + \
                     b"\x00"*11 + tmp_ip[-3:]
