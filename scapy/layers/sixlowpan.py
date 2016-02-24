@@ -684,7 +684,20 @@ class LoWPAN_IPHC(Packet):
         if self.nh == 0x0:
             self.nh = 0#ipv6.nh
         else: #self.nh == 0x1
-            raise Exception('Unimplemented: The Next Header field is compressed and the next header is encoded using LOWPAN_NHC, which is discussed in Section 4.1.')
+            if ipv6.nh == 17: # UDP
+                self.header_compression = 0xf0
+                self.header_compression |= 0x04
+                udp = ipv6.payload
+                if udp.sport & 0xf0B0 == 0xf080 and udp.dport & 0xf0B0 == 0xf080:
+                    self.header_compression |= 0x03
+                elif udp.sport & 0xf000 == 0xf000 and udp.dport & 0xf000 != 0xf000:
+                    self.header_compression |= 0x02
+                elif udp.sport & 0xf000 != 0xf000 and udp.dport & 0xf000 == 0xf000:
+                    self.header_compression |= 0x01
+                else:
+                    self.header_compression |= 0x00 # add nothing
+            else:
+                raise Exception('Unimplemented: The Next Header field is compressed and the next header is encoded using LOWPAN_NHC, which is discussed in Section 4.1.')
         
         # 3. HLim
         if self.hlim == 0x0:
