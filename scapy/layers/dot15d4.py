@@ -232,31 +232,37 @@ _zcl_attribute_data_types = {
 
 class dot15d4AddressField(Field):
     def __init__(self, name, default, length_of=None, fmt="<H", adjust=None):
+        # fmt does not matter since i2len(), addfield(), getfield(),
+        # and randval() are defined here, these methods of Field
+        # depend on fmt.
         Field.__init__(self, name, default, fmt)
         self.length_of=length_of
         if adjust != None:  self.adjust=adjust
         else:               self.adjust=lambda pkt,x:self.lengthFromAddrMode(pkt, x)
-    def i2repr(self, pkt, x):
-        """Convert internal value to a nice representation"""
-        if len(hex(self.i2m(pkt,x))) < 7: # short address
-            return hex(self.i2m(pkt,x))
-        else: # long address
-            x = hex(self.i2m(pkt,x))[2:-1]
-            x = len(x) %2 != 0 and "0" + x or x
-            return ":".join(["%s%s" % (x[i], x[i+1]) for i in range(0,len(x),2)])
-    def addfield(self, pkt, s, val):
-        """Add an internal value to a string"""
+    def i2len(self, pkt, x):
+        return len(str2mac(x))
+    def i2m(self, pkt, x):
+        return mac2str(x)[::-1]
+    def m2i(self, pkt, x):
+        # Little-endian in the address fields of IEEE 802.15.4
         if self.adjust(pkt, self.length_of) == 2:
-            return s + struct.pack(self.fmt[0]+"H", val)
+            return ("%02x:"*2)[:-1] % tuple(x[::-1])
         elif self.adjust(pkt, self.length_of) == 8:
-            return s + struct.pack(self.fmt[0]+"Q", val)
+            return ("%02x:"*8)[:-1] % tuple(x[::-1])
         else:
-            return s
+            raise Exception('impossible case')
+        return str2mac(x)
+    def any2i(self, pkt, x):
+        if type(x) is bytes and (len(x) is 2 or len(x) is 8):
+            x = self.m2i(pkt, x)
+        return x
+    def addfield(self, pkt, s, val):
+        return self.m2i(pkt, x)
     def getfield(self, pkt, s):
         if self.adjust(pkt, self.length_of) == 2:
-            return s[2:], self.m2i(pkt, struct.unpack(self.fmt[0]+"H", s[:2])[0])
+            return s[2:], self.m2i(pkt, s[:2])
         elif self.adjust(pkt, self.length_of) == 8:
-            return s[8:], self.m2i(pkt, struct.unpack(self.fmt[0]+"Q", s[:8])[0])
+            return s[8:], self.m2i(pkt, s[:8])
         else:
             raise Exception('impossible case')
     def lengthFromAddrMode(self, pkt, x):
@@ -267,7 +273,8 @@ class dot15d4AddressField(Field):
         if addrmode == 2: return 2
         elif addrmode == 3: return 8
         else: return 0
-
+    def randval(self):
+        raise Exception('Not implemented')
 
 #class dot15d4Checksum(LEShortField,XShortField):
 #    def i2repr(self, pkt, x):

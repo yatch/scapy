@@ -510,13 +510,13 @@ class LoWPAN_IPHC(Packet):
                     underlayer = underlayer.underlayer
                 if type(underlayer) == Dot15d4Data:
                     if underlayer.underlayer.fcf_destaddrmode == 3:
-                        tmp_ip = prefix + struct.pack(">Q", underlayer.dest_addr)
+                        tmp_ip = prefix + mac2str(underlayer.dest_addr)
                         #Turn off the bit 7.
                         tmp_ip = tmp_ip[0:8] + struct.pack("B", tmp_ip[8] ^ 0x2) + tmp_ip[9:16]
                     elif underlayer.underlayer.fcf_destaddrmode == 2:
                         tmp_ip = prefix + \
                             b"\x00\x00\x00\xff\xfe\x00" + \
-                            struct.pack(">Q", underlayer.dest_addr)
+                            mac2str(underlayer.dest_addr)
                 else:
                     payload = packet.payload
                     #Most of the times, it's necessary the IEEE 802.15.4 data to extract this address
@@ -619,13 +619,13 @@ class LoWPAN_IPHC(Packet):
                         underlayer = underlayer.underlayer
                     assert type(underlayer) == Dot15d4Data
                     if underlayer.underlayer.fcf_srcaddrmode == 3:
-                        tmp_ip = LINK_LOCAL_PREFIX[0:8] + struct.pack(">Q", underlayer.src_addr)
+                        tmp_ip = LINK_LOCAL_PREFIX[0:8] + mac2str(underlayer.src_addr)
                         #Turn off the bit 7.
                         tmp_ip = tmp_ip[0:8] + struct.pack("B", tmp_ip[8] ^ 0x2) + tmp_ip[9:16]
                     elif underlayer.underlayer.fcf_srcaddrmode == 2:
                         tmp_ip = LINK_LOCAL_PREFIX[0:8] + \
                             b"\x00\x00\x00\xff\xfe\x00" + \
-                            struct.pack(">Q", underlayer.src_addr)
+                            mac2str(underlayer.src_addr)
                 else:
                     payload = packet.payload
                     #Most of the times, it's necessary the IEEE 802.15.4 data to extract this address
@@ -645,7 +645,7 @@ class LoWPAN_IPHC(Packet):
                     while underlayer != None and isinstance(underlayer, SixLoWPAN):
                         underlayer = underlayer.underlayer
                     assert type(underlayer) == Dot15d4Data
-                tmp_ip = prefix + struct.pack(">Q", underlayer.src_addr)
+                tmp_ip = prefix + mac2str(underlayer.src_addr)
                 tmp_ip = tmp_ip[0:8] + struct.pack("B", tmp_ip[8] ^ 0x2) + tmp_ip[9:16]
             else:
                 raise Exception('Unimplemented')
