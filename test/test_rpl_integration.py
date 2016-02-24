@@ -107,9 +107,24 @@ class Dissection(unittest.TestCase):
         self.assertEqual(a[UDP].sport, 1234)
         self.assertEqual(a[UDP].dport, 1234)
 
+    def test_dissect_udp_with_rplopt(self):
+        str = b'\x61\xdc\x52\xcd\xab\x04\x00\x04\x00\x04\x00\x04\x00\x08\x00\x08\x00\x08\x00\x08\x00\x78\xd5\x00\x00\x3c\x02\x02\x00\x02\x00\x02\x00\x02\x02\x01\x00\x01\x00\x01\x00\x01\x11\x00\x63\x04\x80\x1e\x03\x24\x04\xd2\x04\xd2\x00\x12\xe5\x64\x4d\x65\x73\x73\x61\x67\x65\x20\x30\x00\x9c\x37'
+        a = self.dissect(str)
+        log.debug(a.show())
+        self.assertEqual(a[IPv6].src, 'aaaa::202:2:2:2')
+        self.assertEqual(a[IPv6].dst, 'aaaa::201:1:1:1')
+        self.assertEqual(a[IPv6ExtHdrHopByHop].nh, 17)
+        self.assertEqual(a[RPLOption].O, 1)
+        self.assertEqual(a[RPLOption].rank, 0x0324)
+        self.assertEqual(a[UDP].sport, 1234)
+        self.assertEqual(a[UDP].dport, 1234)
+
+
 
 if __name__ == "__main__":
     logging.basicConfig( stream=sys.stderr )
     logging.getLogger('test_logger').setLevel(logging.DEBUG)
     unittest.main()
+
+
 
