@@ -248,7 +248,7 @@ Example:
 | control   | Byte       | 8 bits   |       0 | Path Control                                                  |
 | sequence  | Byte       | 8 bits   |       0 | Path Sequence                                                 |
 | lifetime  | Byte       | 8 bits   |       0 | Path Lifetime                                                 |
-| address   | Prefix6    | varibale |    ::/0 | Parent Address                                                |
+| address   | IP6        | 128 bits |    None | Parent Address, Conditional Field                             |
 
 Example:
 ```python
@@ -500,7 +500,7 @@ Example:
 | reserved  | Bit        | 20 bits  |       0 | Reserved bits                                                             |
 | addresses | FieldList  | variable |      [] | A list of Address6Field(); the length of each address depends on `CmprI`. |
 | last      | Address6   | variable |  ::/128 | The length depends on `CmprE`.                                            |
-
+| padding   | StrLen     | varibale |    None | Condtionl Field                                                           |
 
 Example:
 ```python
