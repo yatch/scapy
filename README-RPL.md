@@ -104,7 +104,7 @@ a.show()
 | rank       | Byte       | 8 bits   |       0 | Rank of the sender                                       |
 | G          | Bit        | 1 bit    |       0 | Grounded flag; if it's set, the DODAG is grounded.       |
 | Z          | Bit        | 1 bit    |       0 | Zero flag; should be always zero.                        |
-| mop        | Bit        | 3 bits   |       0 | Mode of Operation                                        |
+| mop        | BitEnum    | 3 bits   |       0 | Mode of Operation                                        |
 | prf        | Bit        | 3 bits   |       0 | DODAGPreference                                          |
 | dtsn       | Byte       | 8 bits   |       0 | Destination Advertisement Trigger Sequence Number (DTSN) |
 | flags      | Byte       | 8 bits   |       0 | Reserved flags                                           |
