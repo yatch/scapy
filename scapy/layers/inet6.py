@@ -3267,6 +3267,11 @@ rplmsgcode ={0 : "DIS",
              3 : "DAO_ACK",
              4 : "CC"}
 
+rplmop ={0 : "RPL_MOP_NO_DOWNWARD_ROUTES",
+         1 : "RPL_MOP_NON_STORING",
+         2 : "RPL_MOP_STORING_NO_MULTICAST",
+         3 : "RPL_MOP_STORING_MULTICAST"}
+
 def _rpl_guesser(p):
     return get_cls(rplmsgcls.get(p[1], "Raw"), "Raw")
 
@@ -3294,7 +3299,7 @@ class ICMPv6RPL_DIO(_ICMPv6RPL, _ICMPv6, Packet):
                    ShortField("rank", 0),
                    BitField("G", 0, 1),
                    BitField("Z", 0, 1),
-                   BitField("mop", 0, 3),
+                   BitEnumField("mop", 0, 3, rplmop),
                    BitField("prf", 0, 3),
                    ByteField("dtsn", 0),
                    ByteField("flags", 0),
