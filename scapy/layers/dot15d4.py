@@ -257,7 +257,7 @@ class dot15d4AddressField(Field):
             x = self.m2i(pkt, x)
         return x
     def addfield(self, pkt, s, val):
-        return self.m2i(pkt, s)
+        return self.i2m(pkt, val)
     def getfield(self, pkt, s):
         if self.adjust(pkt, self.length_of) == 2:
             return s[2:], self.m2i(pkt, s[:2])
