@@ -119,7 +119,22 @@ class Dissection(unittest.TestCase):
         self.assertEqual(a[UDP].sport, 1234)
         self.assertEqual(a[UDP].dport, 1234)
 
-
+class Iterate(unittest.TestCase):
+    def test_iter_basic(self):
+        str = b'\x61\xdc\xa9\xcd\xab\x08\x00\x08\x00\x08\x00\x08\x00\x07\x00\x07\x00\x07\x00\x07\x00\x78\xd7\x00\x2b\x3f\x02\x03\x00\x03\x00\x03\x00\x03\x29\x03\x03\x02\x99\x30\x00\x00\x07\x00\x07\x00\x07\x00\x07\x04\x00\x04\x00\x04\x00\x04\x01\x00\x01\x00\x01\x00\x01\x00\x00\x00\x60\x00\x00\x00\x00\x12\x11\x3c\xaa\xaa\x00\x00\x00\x00\x00\x00\x02\x02\x00\x02\x00\x02\x00\x02\xaa\xaa\x00\x00\x00\x00\x00\x00\x02\x01\x00\x01\x00\x01\x00\x01\x04\xd2\x04\xd2\x00\x12\xe5\x64\x4d\x65\x73\x73\x61\x67\x65\x20\x30\x00\x9a\x12'
+        a = Dot15d4FCS(str)
+        it = iter(a)
+        self.assertEqual(type(next(it)), Dot15d4FCS)
+        self.assertEqual(type(next(it)), Dot15d4Data)
+        self.assertEqual(type(next(it)), SixLoWPAN)
+        self.assertEqual(type(next(it)), LoWPAN_IPHC)
+        self.assertEqual(type(next(it)), IPv6)
+        self.assertEqual(type(next(it)), IPv6ExtHdrRPLSourceRouting)
+        self.assertEqual(type(next(it)), IPv6)
+        self.assertEqual(type(next(it)), UDP)
+        self.assertEqual(type(next(it)), Raw)
+        with self.assertRaises(StopIteration):
+            type(next(it)) 
 
 if __name__ == "__main__":
     logging.basicConfig( stream=sys.stderr )
