@@ -623,12 +623,11 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
         s = self.do_dissect(s)
 
         s = self.post_dissect(s)
-            
+
         payl,pad = self.extract_padding(s)
         self.do_dissect_payload(payl)
         if pad and conf.padding:
             self.add_payload(conf.padding_layer(pad))
-
 
     def guess_payload_class(self, payload):
         """DEV: Guesses the next payload class from layer bonds. Can be overloaded to use a different mechanism."""
@@ -683,16 +682,13 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
                     for x in loop(todo[:], done):
                         yield x
             else:
-                if isinstance(self.payload,NoPayload):
-                    payloads = [None]
-                else:
-                    payloads = self.payload
-                for payl in payloads:
-                    done2=done.copy()
+                while isinstance(self,NoPayload) == False:
+                    done2 = self.fields.copy()
                     for k in done2:
                         if isinstance(done2[k], VolatileValue):
                             done2[k] = done2[k]._fix()
-                    pkt = self.clone_with(payload=payl, **done2)
+                    pkt = self.clone_with(payload=self.payload,**done2)
+                    self = self.payload
                     yield pkt
 
         if self.explicit:
