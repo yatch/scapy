@@ -446,6 +446,9 @@ class LoWPAN_IPHC(Packet):
         
         packet.src = self.decompressSourceAddr(packet)
         packet.dst = self.decompressDestinyAddr(packet)
+        # setfieldval() called in decompress* causes self.explicit
+        # becomes 0
+        self.explicit = 1 # XXX
         
         if self.nh == 1:
             # The Next Header field is compressed and the next header is
@@ -468,7 +471,7 @@ class LoWPAN_IPHC(Packet):
                 udp.dport = 0xF000 + d
             elif d == 4:
                 udp.dport = 0xF0B0 + d
-            
+                
             packet.payload = udp/data
             data = bytes(packet)
         #else self.nh == 0 not necesary
@@ -477,7 +480,6 @@ class LoWPAN_IPHC(Packet):
         else:
             packet.payload = data
             data = bytes(packet)
-        
         return Packet.post_dissect(self, data)
         
     def decompressDestinyAddr(self, packet):
@@ -602,7 +604,6 @@ class LoWPAN_IPHC(Packet):
             tmp_ip = socket.inet_pton(socket.AF_INET6, self.sourceAddr)
         except socket.error as e:
             tmp_ip = b"\x00"*16
-        
         
         if self.sac == 0:
             if self.sam == 0x0:
